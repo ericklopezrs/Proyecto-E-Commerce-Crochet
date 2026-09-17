@@ -29,12 +29,7 @@ export default function App() {
   const [selectedProducto, setSelectedProducto] = useState(null);
 
   // --- STORE GLOBAL (ZUSTAND) ---
-  const {
-    cart,
-    addToCart,
-    clearCart,
-    getTotal
-  } = useCartStore();
+  const { cart, addToCart, clearCart, getTotal } = useCartStore();
 
   // --- DATOS BACKEND ---
   const [categorias, setCategorias] = useState([]);
@@ -45,19 +40,28 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [quantities, setQuantities] = useState({});
 
+  // --- NUEVO: ESTADO DE FILTROS DEL SIDEBAR ---
+  const [filters, setFilters] = useState({
+    precioMin: '',
+    precioMax: '',
+    sortBy: 'default',
+    onlyAvailable: false
+  });
+
+  const handleFilterChange = (name, value) => {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ precioMin: '', precioMax: '', sortBy: 'default', onlyAvailable: false });
+  };
+
   // --- CAMBIAR CANTIDAD ---
   const handleQuantityChange = (prodId, delta, maxStock = 10) => {
     setQuantities((prev) => {
       const current = prev[prodId] || 1;
-      const next = Math.min(
-        Math.max(1, current + delta),
-        maxStock
-      );
-
-      return {
-        ...prev,
-        [prodId]: next
-      };
+      const next = Math.min(Math.max(1, current + delta), maxStock);
+      return { ...prev, [prodId]: next };
     });
   };
 
@@ -90,10 +94,10 @@ export default function App() {
       });
   }, []);
 
-  // --- SELECCIONAR CATEGORÍA ---
+  // --- SELECCIONAR CATEGORÍA (desde el header) ---
   const handleSelectCategoria = (catId) => {
     setSelectedCategoria(catId);
-    setCurrentView('DETALLE_CATEGORIA');
+    setCurrentView('HOME');
   };
 
   // --- SELECCIONAR PRODUCTO ---
@@ -130,18 +134,12 @@ export default function App() {
           }
         }
         `,
-        {
-          usuario_id: "1",
-          total: parseFloat(total),
-          items
-        }
+        { usuario_id: "1", total: parseFloat(total), items }
       );
 
       alert('¡Pedido guardado exitosamente!');
-
       clearCart();
       setCurrentView('HOME');
-
     } catch (err) {
       alert('Error al registrar pedido: ' + err.message);
     }
@@ -153,14 +151,9 @@ export default function App() {
       <div className="error-container">
         <i
           className="fa-solid fa-triangle-exclamation"
-          style={{
-            marginRight: '8px',
-            fontSize: '24px'
-          }}
+          style={{ marginRight: '8px', fontSize: '24px' }}
         ></i>
-
         <p>Error de conexión: {error}</p>
-
         <button
           className="primary-btn-sm"
           onClick={() => window.location.reload()}
@@ -171,44 +164,76 @@ export default function App() {
     );
   }
 
-  // --- TODOS LOS PRODUCTOS ---
-  const allProductos = categorias.flatMap(
-    (cat) => cat.productos || []
-  );
+  // --- PIPELINE DE FILTRADO ---
+  const applyFilters = (productos) => {
+    let result = [...productos];
 
-  // --- PRODUCTOS DEL HOME ---
-  const homeProductos = allProductos.filter((p) =>
-    p.nombre
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+    // 1. Búsqueda
+    if (searchTerm) {
+      result = result.filter((p) =>
+        p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  // --- PRODUCTOS DE LA CATEGORÍA ---
-  const baseCategoriaProductos =
+    // 2. Rango de precio
+    const min = parseFloat(filters.precioMin);
+    const max = parseFloat(filters.precioMax);
+    if (!isNaN(min)) result = result.filter((p) => parseFloat(p.precio) >= min);
+    if (!isNaN(max)) result = result.filter((p) => parseFloat(p.precio) <= max);
+
+    // 3. Solo disponibles
+    if (filters.onlyAvailable) {
+      result = result.filter((p) => (p.stock ?? 0) > 0);
+    }
+
+    // 4. Ordenamiento
+    switch (filters.sortBy) {
+      case 'precio-asc':
+        result.sort((a, b) => a.precio - b.precio);
+        break;
+      case 'precio-desc':
+        result.sort((a, b) => b.precio - a.precio);
+        break;
+      case 'nombre-asc':
+        result.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        break;
+      case 'nombre-desc':
+        result.sort((a, b) => b.nombre.localeCompare(a.nombre));
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  };
+
+  // --- MODO DE VISUALIZACIÓN DEL CATÁLOGO ---
+  // Agrupado: "Todo" + sin orden personalizado
+  // Grid plano: categoría específica o cuando hay orden activo
+  
+
+  const baseProductos =
     selectedCategoria === 'TODAS'
-      ? allProductos
+      ? categorias.flatMap((c) => c.productos || [])
       : categorias.find(
-          (c) =>
-            String(c.id) === String(selectedCategoria)
+          (c) => String(c.id) === String(selectedCategoria)
         )?.productos || [];
 
-  const displayedCategoriaProductos =
-    baseCategoriaProductos.filter((p) =>
-      p.nombre
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-    );
+  const filteredProductos = applyFilters(baseProductos);
+
+  const tituloCatalogo =
+    selectedCategoria === 'TODAS'
+      ? 'Catálogo Completo'
+      : categorias.find((c) => String(c.id) === String(selectedCategoria))
+          ?.nombre || 'Categoría';
 
   // --- TOTAL DE PRODUCTOS EN EL CARRITO ---
-  const totalItemsCount = cart.reduce(
-    (acc, item) => acc + item.cantidad,
-    0
-  );
+  const totalItemsCount = cart.reduce((acc, item) => acc + item.cantidad, 0);
 
   return (
     <div className="app-wrapper">
 
-      {/* HEADER */}
+      {/* HEADER (con búsqueda expandible y categorías) */}
       <TopBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -218,6 +243,9 @@ export default function App() {
           setCurrentView('HOME');
         }}
         onGoCart={() => setCurrentView('CARRITO')}
+        categorias={categorias}
+        selectedCategoria={selectedCategoria}
+        onSelectCategoria={handleSelectCategoria}
       />
 
       {/* BOTÓN FLOTANTE DEL CARRITO */}
@@ -226,30 +254,26 @@ export default function App() {
         onClick={() => setCurrentView('CARRITO')}
       >
         <i className="fa-solid fa-basket-shopping"></i>
-
         {totalItemsCount > 0 && (
-          <span className="floating-cart-badge">
-            {totalItemsCount}
-          </span>
+          <span className="floating-cart-badge">{totalItemsCount}</span>
         )}
       </button>
 
       <div className="main-container">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR (ahora con filtros) */}
         <Sidebar
-          categorias={categorias}
-          selectedCategoria={selectedCategoria}
-          onSelectCategoria={handleSelectCategoria}
-          currentView={currentView}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onResetFilters={handleResetFilters}
         />
 
         <main className="content">
 
           {/* =====================================================
-              VISTA 1: CATÁLOGO PRINCIPAL
-          ====================================================== */}
-         {currentView === 'HOME' && (
+    VISTA 1: CATÁLOGO PRINCIPAL
+====================================================== */}
+{currentView === 'HOME' && (
   <div>
     <div className="ml-promo-banner-container">
       <img
@@ -259,7 +283,6 @@ export default function App() {
       />
     </div>
 
-    {/* VISTA RÁPIDA DEL CARRITO */}
     <ContextPanel
       cart={cart}
       getTotal={getTotal}
@@ -271,16 +294,57 @@ export default function App() {
         className="fa-solid fa-store"
         style={{ marginRight: '8px' }}
       ></i>
-      Catálogo Completo
+      {tituloCatalogo}
     </h3>
 
-    <div className="grid-productos">
-      {loading ? (
-        Array.from({ length: 8 }).map((_, i) => (
+    {loading ? (
+      <div className="grid-productos">
+        {Array.from({ length: 8 }).map((_, i) => (
           <SkeletonCard key={i} />
-        ))
-      ) : (
-        homeProductos.map((prod) => (
+        ))}
+      </div>
+    ) : filteredProductos.length === 0 ? (
+      <div className="empty-cart">
+        <i
+          className="fa-solid fa-magnifying-glass"
+          style={{
+            fontSize: '32px',
+            display: 'block',
+            marginBottom: '12px'
+          }}
+        ></i>
+
+        No se encontraron productos
+        {searchTerm && <> para "{searchTerm}"</>}.
+
+        <div
+          style={{
+            marginTop: '16px',
+            display: 'flex',
+            gap: '8px',
+            justifyContent: 'center'
+          }}
+        >
+          <button
+            className="primary-btn-sm"
+            onClick={handleResetFilters}
+          >
+            Limpiar filtros
+          </button>
+
+          {searchTerm && (
+            <button
+              className="primary-btn-sm"
+              onClick={() => setSearchTerm('')}
+            >
+              Limpiar búsqueda
+            </button>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="grid-productos">
+        {filteredProductos.map((prod) => (
           <ProductCard
             key={prod.id}
             producto={prod}
@@ -289,300 +353,198 @@ export default function App() {
             onView={handleSelectProducto}
             onAdd={addToCart}
           />
-        ))
-      )}
-    </div>
+        ))}
+      </div>
+    )}
   </div>
 )}
 
           {/* =====================================================
-              VISTA 2: DETALLE DE CATEGORÍA
+              VISTA 2: DETALLE DE PRODUCTO
           ====================================================== */}
-          {currentView === 'DETALLE_CATEGORIA' && (
+          {currentView === 'PRODUCTO' && selectedProducto && (
             <div>
-
               <button
                 className="back-button"
-                onClick={() => {
-                  setSelectedCategoria('TODAS');
-                  setCurrentView('HOME');
-                }}
+                onClick={() => setCurrentView('HOME')}
               >
                 <i
                   className="fa-solid fa-arrow-left"
                   style={{ marginRight: '6px' }}
                 ></i>
-
-                Volver al inicio
+                Volver al catálogo
               </button>
 
-              <h3 className="section-title">
+              <div className="detail-container">
+                <img
+                  src={
+                    selectedProducto.imagen ||
+                    'https://via.placeholder.com/280'
+                  }
+                  alt={selectedProducto.nombre}
+                  className="detail-image"
+                />
 
-                <i
-                  className="fa-solid fa-tags"
-                  style={{ marginRight: '8px' }}
-                ></i>
+                <div className="detail-body">
+                  <h2
+                    style={{
+                      margin: '0 0 10px 0',
+                      fontSize: '26px',
+                      color: '#0f172a'
+                    }}
+                  >
+                    {selectedProducto.nombre}
+                  </h2>
 
-                {selectedCategoria === 'TODAS'
-                  ? 'Todas las Categorías'
-                  : categorias.find(
-                      (c) =>
-                        String(c.id) ===
-                        String(selectedCategoria)
-                    )?.nombre || 'Categoría'
-                }
+                  <p
+                    style={{
+                      color: '#64748b',
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      marginBottom: '16px'
+                    }}
+                  >
+                    {selectedProducto.descripcion}
+                  </p>
 
-              </h3>
+                  <div
+                    className="product-stock"
+                    style={{ fontSize: '14px', marginBottom: '16px' }}
+                  >
+                    Stock disponible:{' '}
+                    <span>
+                      {selectedProducto.stock ?? 10} piezas
+                    </span>
+                  </div>
 
-              <div className="grid-productos">
+                  <div
+                    className="product-price"
+                    style={{ fontSize: '28px', marginBottom: '20px' }}
+                  >
+                    ${selectedProducto.precio} MXN
+                  </div>
 
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <SkeletonCard key={i} />
-                  ))
-                ) : (
-                  displayedCategoriaProductos.map((prod) => (
-                    <ProductCard
-                      key={prod.id}
-                      producto={prod}
-                      qty={quantities[prod.id] || 1}
-                      availableStock={prod.stock ?? 10}
-                      onView={handleSelectProducto}
-                      onAdd={addToCart}
-                    />
-                  ))
-                )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      marginBottom: '20px'
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        color: '#0f172a'
+                      }}
+                    >
+                      Cantidad:
+                    </label>
 
+                    <div className="qty-picker">
+                      <button
+                        onClick={() =>
+                          handleQuantityChange(
+                            selectedProducto.id,
+                            -1,
+                            selectedProducto.stock ?? 10
+                          )
+                        }
+                      >
+                        -
+                      </button>
+
+                      <span>
+                        {quantities[selectedProducto.id] || 1}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          handleQuantityChange(
+                            selectedProducto.id,
+                            1,
+                            selectedProducto.stock ?? 10
+                          )
+                        }
+                        disabled={
+                          (quantities[selectedProducto.id] || 1) >=
+                          (selectedProducto.stock ?? 10)
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '12px',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <button
+                      className="primary-btn"
+                      style={{
+                        flex: 2,
+                        padding: '14px 20px',
+                        fontSize: '15px'
+                      }}
+                      onClick={() =>
+                        addToCart(
+                          selectedProducto,
+                          quantities[selectedProducto.id] || 1
+                        )
+                      }
+                    >
+                      <i
+                        className="fa-solid fa-cart-plus"
+                        style={{ marginRight: '8px' }}
+                      ></i>
+                      Agregar al Carrito
+                    </button>
+
+                    <button
+                      className="primary-btn-sm"
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        fontSize: '13px'
+                      }}
+                      onClick={() => {
+                        addToCart(
+                          selectedProducto,
+                          quantities[selectedProducto.id] || 1
+                        );
+                        setCurrentView('CARRITO');
+                      }}
+                    >
+                      <i
+                        className="fa-solid fa-credit-card"
+                        style={{ marginRight: '6px' }}
+                      ></i>
+                      Comprar Ahora
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* =====================================================
-              VISTA 3: DETALLE DE PRODUCTO
-          ====================================================== */}
-          {currentView === 'PRODUCTO' &&
-            selectedProducto && (
-              <div>
-
-                <button
-                  className="back-button"
-                  onClick={() =>
-                    setCurrentView('HOME')
-                  }
-                >
-                  <i
-                    className="fa-solid fa-arrow-left"
-                    style={{ marginRight: '6px' }}
-                  ></i>
-
-                  Volver al catálogo
-                </button>
-
-                <div className="detail-container">
-
-                  <img
-                    src={
-                      selectedProducto.imagen ||
-                      'https://via.placeholder.com/280'
-                    }
-                    alt={selectedProducto.nombre}
-                    className="detail-image"
-                  />
-
-                  <div className="detail-body">
-
-                    <h2
-                      style={{
-                        margin: '0 0 10px 0',
-                        fontSize: '26px',
-                        color: '#0f172a'
-                      }}
-                    >
-                      {selectedProducto.nombre}
-                    </h2>
-
-                    <p
-                      style={{
-                        color: '#64748b',
-                        fontSize: '14px',
-                        lineHeight: '1.6',
-                        marginBottom: '16px'
-                      }}
-                    >
-                      {selectedProducto.descripcion}
-                    </p>
-
-                    <div
-                      className="product-stock"
-                      style={{
-                        fontSize: '14px',
-                        marginBottom: '16px'
-                      }}
-                    >
-                      Stock disponible:{' '}
-                      <span>
-                        {selectedProducto.stock ?? 10}
-                        {' '}piezas
-                      </span>
-                    </div>
-
-                    <div
-                      className="product-price"
-                      style={{
-                        fontSize: '28px',
-                        marginBottom: '20px'
-                      }}
-                    >
-                      ${selectedProducto.precio} MXN
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px',
-                        marginBottom: '20px'
-                      }}
-                    >
-
-                      <label
-                        style={{
-                          fontWeight: 'bold',
-                          fontSize: '14px',
-                          color: '#0f172a'
-                        }}
-                      >
-                        Cantidad:
-                      </label>
-
-                      <div className="qty-picker">
-
-                        <button
-                          onClick={() =>
-                            handleQuantityChange(
-                              selectedProducto.id,
-                              -1,
-                              selectedProducto.stock ?? 10
-                            )
-                          }
-                        >
-                          -
-                        </button>
-
-                        <span>
-                          {quantities[
-                            selectedProducto.id
-                          ] || 1}
-                        </span>
-
-                        <button
-                          onClick={() =>
-                            handleQuantityChange(
-                              selectedProducto.id,
-                              1,
-                              selectedProducto.stock ?? 10
-                            )
-                          }
-                          disabled={
-                            (quantities[
-                              selectedProducto.id
-                            ] || 1) >=
-                            (selectedProducto.stock ?? 10)
-                          }
-                        >
-                          +
-                        </button>
-
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '12px',
-                        alignItems: 'center'
-                      }}
-                    >
-
-                      <button
-                        className="primary-btn"
-                        style={{
-                          flex: 2,
-                          padding: '14px 20px',
-                          fontSize: '15px'
-                        }}
-                        onClick={() =>
-                          addToCart(
-                            selectedProducto,
-                            quantities[
-                              selectedProducto.id
-                            ] || 1
-                          )
-                        }
-                      >
-                        <i
-                          className="fa-solid fa-cart-plus"
-                          style={{ marginRight: '8px' }}
-                        ></i>
-
-                        Agregar al Carrito
-                      </button>
-
-                      <button
-                        className="primary-btn-sm"
-                        style={{
-                          flex: 1,
-                          padding: '10px 14px',
-                          fontSize: '13px'
-                        }}
-                        onClick={() => {
-                          addToCart(
-                            selectedProducto,
-                            quantities[
-                              selectedProducto.id
-                            ] || 1
-                          );
-
-                          setCurrentView('CARRITO');
-                        }}
-                      >
-                        <i
-                          className="fa-solid fa-credit-card"
-                          style={{ marginRight: '6px' }}
-                        ></i>
-
-                        Comprar Ahora
-                      </button>
-
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            )}
-
-          {/* =====================================================
-              VISTA 4: CARRITO
+              VISTA 3: CARRITO
           ====================================================== */}
           {currentView === 'CARRITO' && (
-            <div
-              style={{
-                maxWidth: '650px',
-                margin: '0 auto'
-              }}
-            >
-
+            <div style={{ maxWidth: '650px', margin: '0 auto' }}>
               <button
                 className="back-button"
-                onClick={() =>
-                  setCurrentView('HOME')
-                }
+                onClick={() => setCurrentView('HOME')}
               >
                 <i
                   className="fa-solid fa-arrow-left"
                   style={{ marginRight: '6px' }}
                 ></i>
-
                 Volver al catálogo
               </button>
 
@@ -591,14 +553,11 @@ export default function App() {
                   className="fa-solid fa-basket-shopping"
                   style={{ marginRight: '8px' }}
                 ></i>
-
                 Tu Carrito
               </h3>
 
               {cart.length === 0 ? (
-
                 <div className="empty-cart">
-
                   <i
                     className="fa-solid fa-cart-flatbed"
                     style={{
@@ -607,130 +566,81 @@ export default function App() {
                       marginBottom: '12px'
                     }}
                   ></i>
-
                   El carrito está vacío.
-
                 </div>
-
               ) : (
-
                 <div className="cart-box">
-
                   {cart.map((item) => (
-                    <div
-                      key={item.producto.id}
-                      className="cart-row"
-                    >
-
+                    <div key={item.producto.id} className="cart-row">
                       <div>
-
-                        <strong
-                          style={{ color: '#0f172a' }}
-                        >
+                        <strong style={{ color: '#0f172a' }}>
                           {item.producto.nombre}
                         </strong>
-
                         <div
-                          style={{
-                            color: '#64748b',
-                            fontSize: '13px'
-                          }}
+                          style={{ color: '#64748b', fontSize: '13px' }}
                         >
                           Cantidad: {item.cantidad}
                         </div>
-
                       </div>
 
                       <span
                         className="product-price"
                         style={{ fontSize: '16px' }}
                       >
-                        $
-                        {item.producto.precio *
-                          item.cantidad}{' '}
-                        MXN
+                        ${item.producto.precio * item.cantidad} MXN
                       </span>
-
                     </div>
                   ))}
 
                   <div className="cart-total-row">
-
-                    <span>
-                      Total Estimado:
-                    </span>
-
-                    <span
-                      style={{ fontSize: '22px' }}
-                    >
+                    <span>Total Estimado:</span>
+                    <span style={{ fontSize: '22px' }}>
                       ${getTotal()} MXN
                     </span>
-
                   </div>
 
                   <button
                     className="primary-btn"
-                    onClick={() =>
-                      setCurrentView('CHECKOUT')
-                    }
+                    onClick={() => setCurrentView('CHECKOUT')}
                   >
                     <i
                       className="fa-solid fa-credit-card"
                       style={{ marginRight: '8px' }}
                     ></i>
-
                     Continuar al Checkout
                   </button>
-
                 </div>
               )}
-
             </div>
           )}
 
           {/* =====================================================
-              VISTA 5: CHECKOUT
+              VISTA 4: CHECKOUT
           ====================================================== */}
           {currentView === 'CHECKOUT' && (
-            <div
-              style={{
-                maxWidth: '550px',
-                margin: '0 auto'
-              }}
-            >
-
+            <div style={{ maxWidth: '550px', margin: '0 auto' }}>
               <button
                 className="back-button"
-                onClick={() =>
-                  setCurrentView('CARRITO')
-                }
+                onClick={() => setCurrentView('CARRITO')}
               >
                 <i
                   className="fa-solid fa-arrow-left"
                   style={{ marginRight: '6px' }}
                 ></i>
-
                 Volver al carrito
               </button>
 
               <h3 className="section-title">
-
                 <i
                   className="fa-solid fa-clipboard-check"
                   style={{ marginRight: '8px' }}
                 ></i>
-
                 Confirmar Pedido
-
               </h3>
 
               <div className="cart-box">
-
                 <h4
-                  style={{
-                    margin: '0 0 16px 0',
-                    color: '#64748b'
-                  }}
+                  style={{ margin: '0 0 16px 0', color: '#64748b' }}
                 >
                   Resumen del Pedido
                 </h4>
@@ -745,50 +655,31 @@ export default function App() {
                       fontSize: '14px'
                     }}
                   >
-
                     <span>
-                      {item.producto.nombre}{' '}
-                      (x{item.cantidad})
+                      {item.producto.nombre} (x{item.cantidad})
                     </span>
-
-                    <span
-                      style={{ fontWeight: 'bold' }}
-                    >
-                      $
-                      {item.producto.precio *
-                        item.cantidad}{' '}
-                      MXN
+                    <span style={{ fontWeight: 'bold' }}>
+                      ${item.producto.precio * item.cantidad} MXN
                     </span>
-
                   </div>
                 ))}
 
                 <hr
                   style={{
                     border: 'none',
-                    borderTop:
-                      '1px solid #cbd5e1',
+                    borderTop: '1px solid #cbd5e1',
                     margin: '16px 0'
                   }}
                 />
 
                 <div
                   className="cart-total-row"
-                  style={{
-                    paddingTop: '0'
-                  }}
+                  style={{ paddingTop: '0' }}
                 >
-
-                  <span>
-                    Total a Pagar:
-                  </span>
-
-                  <span
-                    style={{ fontSize: '22px' }}
-                  >
+                  <span>Total a Pagar:</span>
+                  <span style={{ fontSize: '22px' }}>
                     ${getTotal()} MXN
                   </span>
-
                 </div>
 
                 <button
@@ -799,21 +690,15 @@ export default function App() {
                     className="fa-solid fa-database"
                     style={{ marginRight: '8px' }}
                   ></i>
-
                   Confirmar y Guardar en BD
                 </button>
-
               </div>
-
             </div>
           )}
-
         </main>
       </div>
 
-      {/* FOOTER */}
       <Footer />
-
     </div>
   );
 }
