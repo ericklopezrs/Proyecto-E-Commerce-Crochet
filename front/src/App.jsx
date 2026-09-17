@@ -29,7 +29,7 @@ export default function App() {
   const [selectedProducto, setSelectedProducto] = useState(null);
 
   // --- STORE GLOBAL (ZUSTAND) ---
-  const { cart, addToCart, clearCart, getTotal } = useCartStore();
+  const { cart, addToCart, removeFromCart, increaseQty, decreaseQty, clearCart, getTotal } = useCartStore();
 
   // --- DATOS BACKEND ---
   const [categorias, setCategorias] = useState([]);
@@ -570,27 +570,62 @@ export default function App() {
                 </div>
               ) : (
                 <div className="cart-box">
-                  {cart.map((item) => (
-                    <div key={item.producto.id} className="cart-row">
-                      <div>
-                        <strong style={{ color: '#0f172a' }}>
-                          {item.producto.nombre}
-                        </strong>
-                        <div
-                          style={{ color: '#64748b', fontSize: '13px' }}
-                        >
-                          Cantidad: {item.cantidad}
+                  {cart.map((item) => {
+                    const stockDisponible = item.producto.stock ?? 10;
+                    return (
+                      <div key={item.producto.id} className="cart-row cart-row-ml">
+                        <img
+                          src={item.producto.imagen || 'https://via.placeholder.com/80'}
+                          alt={item.producto.nombre}
+                          className="cart-item-image"
+                        />
+
+                        <div className="cart-item-info">
+                          <strong style={{ color: '#0f172a' }}>
+                            {item.producto.nombre}
+                          </strong>
+                          <span
+                            className="product-price"
+                            style={{ fontSize: '15px' }}
+                          >
+                            ${item.producto.precio} MXN c/u
+                          </span>
+
+                          <div className="qty-picker" style={{ marginTop: '6px' }}>
+                            <button
+                              onClick={() => decreaseQty(item.producto.id)}
+                            >
+                              -
+                            </button>
+                            <span>{item.cantidad}</span>
+                            <button
+                              onClick={() => increaseQty(item.producto.id)}
+                              disabled={item.cantidad >= stockDisponible}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="cart-item-right">
+                          <span
+                            className="product-price"
+                            style={{ fontSize: '16px' }}
+                          >
+                            ${item.producto.precio * item.cantidad} MXN
+                          </span>
+
+                          <button
+                            className="cart-remove-btn"
+                            onClick={() => removeFromCart(item.producto.id)}
+                            title="Eliminar del carrito"
+                          >
+                            <i className="fa-solid fa-trash"></i> Eliminar
+                          </button>
                         </div>
                       </div>
-
-                      <span
-                        className="product-price"
-                        style={{ fontSize: '16px' }}
-                      >
-                        ${item.producto.precio * item.cantidad} MXN
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   <div className="cart-total-row">
                     <span>Total Estimado:</span>

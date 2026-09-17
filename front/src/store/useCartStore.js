@@ -22,7 +22,29 @@ export const useCartStore = create((set, get) => ({
   removeFromCart: (id) => {
     set({ cart: get().cart.filter((item) => item.producto.id !== id) });
   },
-  
+
+  increaseQty: (id) => {
+    const { cart } = get();
+    const newCart = cart.map((item) => {
+      if (item.producto.id !== id) return item;
+      const availableStock = item.producto.stock ?? 10;
+      return { ...item, cantidad: Math.min(item.cantidad + 1, availableStock) };
+    });
+    set({ cart: newCart });
+  },
+
+  decreaseQty: (id) => {
+    const { cart } = get();
+    const newCart = cart
+      .map((item) => {
+        if (item.producto.id !== id) return item;
+        return { ...item, cantidad: item.cantidad - 1 };
+      })
+      // Si la cantidad llega a 0, el producto se elimina del carrito
+      .filter((item) => item.cantidad > 0);
+    set({ cart: newCart });
+  },
+
   clearCart: () => set({ cart: [] }),
   
   getTotal: () => get().cart.reduce((total, item) => total + item.producto.precio * item.cantidad, 0),
