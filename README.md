@@ -1,4 +1,4 @@
-# READNE CHINGON
+# README CHINGON
 Lo primero que se debe de hace es instalar PostgreSQL, buscando "PostgreSQL download" funcionara. Al mismo tiempo tambien busquen su gestor de base de datos. En mi caso yo use **DBeaver**. Si es que usan DBeaver deben de seguir los siguientes pasos:
 
 ## Pasos
