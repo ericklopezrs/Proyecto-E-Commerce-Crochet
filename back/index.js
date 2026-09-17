@@ -15,11 +15,11 @@ const { Pool } = pkg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  user: String(process.env.DB_USER || 'postgres'),
+  host: String(process.env.DB_HOST || 'localhost'),
+  database: String(process.env.DB_NAME || 'postgres'),
+  password: String(process.env.DB_PASSWORD || ''),
+  port: Number(process.env.DB_PORT) || 5432,
 });
 
 const resolvers = {
