@@ -4,7 +4,7 @@ Lo primero que se debe de hace es instalar PostgreSQL, buscando "PostgreSQL down
 ## Pasos
 
 **Paso 1:** 
-Lo primero que deben de hacer es irse a la esquina superior izquierda, y veran que dice "Nueva Conexion".
+Lo primero que deben de hacer es irse a la esquina superior izquierda, y veran que dice "Nueva Conexion".  
 <img width="476" height="708" alt="imagen" src="https://github.com/user-attachments/assets/90b020ff-a6c4-4371-8174-39f1e08a498d" />
 
 Le daran ahi, y les pedira el usuario, y la contraseña. 
