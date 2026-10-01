@@ -1,0 +1,207 @@
+/* ====== LOGIN / REGISTRO ====== */
+
+h2{
+    font-family: "Lato", sans-serif;
+    font-weight: 100;
+    font-style: normal;
+}
+
+.login-img{
+    background-image: url('../assets/fondo.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    overflow-y: hidden;
+}
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.login-card {
+  background-color: #ffffffdf;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 40px 30px 40px 30px;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* --- Encabezado --- */
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ede9fe;
+  color: #7c3aed;
+  margin-bottom: 12px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  font-family: "DM Sans", sans-serif;
+}
+
+/* --- Error --- */
+.login-error {
+  font-family: "Lato", sans-serif;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* --- Campos --- */
+.login-field {
+  margin-bottom: 16px;
+}
+
+.login-label {
+  display: block;
+  font-family: "DM Sans", sans-serif;
+  font-weight: bold;
+  font-size: 15px;
+  font-weight: 700;
+  color: #292a2b;
+  margin-bottom: 6px;
+}
+
+.login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #000000;
+  display: flex;
+  pointer-events: none; /* el click pasa al input */
+}
+
+.login-input {
+  width: 100%;
+  padding: 11px 12px 11px 40px; /* espacio para el icono */
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box; /* lección aprendida 😄 */
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.login-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.login-input::placeholder {
+  color: #94a3b8;
+}
+
+.login-input.with-toggle {
+  padding-right: 40px; /* espacio para el ojito */
+}
+
+.login-toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+}
+
+.login-toggle-password:hover {
+  color: #64748b;
+}
+
+/* --- Botón --- */
+.login-submit {
+  width: 100%;
+  background-color: #611d74;
+  color: #ffffff;
+  border: none;
+  font-family: "DM Sans", sans-serif;
+  padding: 12px 24px;
+  border-radius: 15px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  transition: background-color 0.15s;
+}
+
+.login-submit:hover:not(:disabled) {
+  background-color: #9347a8;
+}
+
+.login-submit:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.login-spinner {
+  animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Footer (link cruzado) --- */
+.login-footer {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin: 20px 0 0 0;
+  font-family: "Lato", sans-serif;
+}
+
+.login-footer a {
+  color: #7c3aed;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}

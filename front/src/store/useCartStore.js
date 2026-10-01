@@ -1,29 +1,40 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const useCartStore = create((set, get) => ({
-  cart: [],
-  
-  addToCart: (producto, cantidad = 1) => {
-    const { cart } = get();
-    const itemIndex = cart.findIndex((item) => item.producto.id === producto.id);
-    const availableStock = producto.stock ?? 10; // Fallback a 10 por si viene nulo
+export const useCartStore = create(
+  persist(
+    (set, get) => ({
+      cart: [],
 
-    if (itemIndex > -1) {
-      // Si el producto ya existe en el carrito, sumamos validando el stock
-      const newCart = [...cart];
-      newCart[itemIndex].cantidad = Math.min(newCart[itemIndex].cantidad + cantidad, availableStock);
-      set({ cart: newCart });
-    } else {
-      // Si es un producto nuevo, lo agregamos validando también que no rebase el stock
-      set({ cart: [...cart, { producto, cantidad: Math.min(cantidad, availableStock) }] });
+      addToCart: (producto, cantidad = 1) => {
+        const { cart } = get();
+        const availableStock = producto.stock ?? 10;
+        const idx = cart.findIndex((i) => i.producto.id === producto.id);
+
+        if (idx > -1) {
+          set({
+            cart: cart.map((item, i) =>
+              i === idx
+                ? { ...item, cantidad: Math.min(item.cantidad + cantidad, availableStock) }
+                : item
+            )
+          });
+        } else {
+          set({ cart: [...cart, { producto, cantidad: Math.min(cantidad, availableStock) }] });
+        }
+      },
+
+      removeFromCart: (id) =>
+        set({ cart: get().cart.filter((i) => i.producto.id !== id) }),
+
+      clearCart: () => set({ cart: [] }),
+
+      getTotal: () =>
+        get().cart.reduce((t, i) => t + i.producto.precio * i.cantidad, 0),
+    }),
+    {
+      name: 'peluches-cart',
+      partialize: (state) => ({ cart: state.cart }),
     }
-  },
-  
-  removeFromCart: (id) => {
-    set({ cart: get().cart.filter((item) => item.producto.id !== id) });
-  },
-  
-  clearCart: () => set({ cart: [] }),
-  
-  getTotal: () => get().cart.reduce((total, item) => total + item.producto.precio * item.cantidad, 0),
-}));
+  )
+);

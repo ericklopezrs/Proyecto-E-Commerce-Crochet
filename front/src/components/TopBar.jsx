@@ -9,7 +9,9 @@ export default function TopBar({
   onGoCart,
   categorias,
   selectedCategoria,
-  onSelectCategoria
+  onSelectCategoria,
+  usuario,
+  onLogout
 }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef(null);
@@ -32,13 +34,13 @@ export default function TopBar({
   return (
     <header className="header">
 
-      {/* ====== FILA 1: LOGO | BÚSQUEDA | CARRITO ====== */}
+      {/* ====== FILA 1: LOGO | BÚSQUEDA | USUARIO + CARRITO ====== */}
       <div className="header-main">
 
         {/* Izquierda */}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-            <img src={logo} alt="Logo" className="brand-logo-img" />
+            <img src={logo.src} alt="Logo" className="brand-logo-img" />
             <h1 className="brand-title">Peluches Crochet</h1>
           </div>
         </div>
@@ -61,8 +63,23 @@ export default function TopBar({
           />
         </div>
 
-        {/* Derecha */}
+        {/* Derecha: usuario + carrito */}
         <div className="header-side header-side-right">
+          {usuario && (
+            <div className="header-user">
+              <span className="header-user-name">
+                Hola, {usuario.nombre.split(' ')[0]}
+              </span>
+              <button
+                className="header-logout-btn"
+                onClick={onLogout}
+                title="Cerrar sesión"
+              >
+                <i className="fa-solid fa-right-from-bracket"></i>
+              </button>
+            </div>
+          )}
+
           <button className="header-cart-button" onClick={onGoCart}>
             <i className="fa-solid fa-cart-shopping"></i>
             {totalItemsCount > 0 && (

@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CatalogoIsland from '../components/islands/CatalogoIsland.jsx';
+import { getCategorias } from '../lib/data';
+
+const categorias = await getCategorias();
+---
+
+<Layout title="Peluches Crochet — Inicio" categorias={categorias}>
+  <CatalogoIsland client:load categorias={categorias} />
+</Layout>

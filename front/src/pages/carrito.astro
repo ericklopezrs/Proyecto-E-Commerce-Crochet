@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CartIsland from '../components/islands/CartIsland.jsx';
+import { getCategorias } from '../lib/data';
+
+const categorias = await getCategorias();
+---
+
+<Layout title="Tu Carrito — Peluches Crochet" categorias={categorias}>
+  <CartIsland client:load />
+</Layout>
