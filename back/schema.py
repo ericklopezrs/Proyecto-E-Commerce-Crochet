@@ -1,19 +1,33 @@
 # schema.py
 import enum
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import strawberry
-from sqlalchemy import func, select
+from email_validator import EmailNotValidError, validate_email
+from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from strawberry.schema.config import StrawberryConfig
 
+from auth import requerir_admin, requerir_usuario
+from jwt_service import (
+    REFRESH_EXPIRACION_DIAS,
+    decodificar_token,
+    generar_access_token,
+    generar_refresh_token,
+)
 from models import (
     CategoriaModel,
     DetallePedidoModel,
     PedidoModel,
     ProductoModel,
+    RefreshTokenModel,
     UsuarioModel,
 )
+
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 @strawberry.enum
@@ -152,6 +166,32 @@ class Pedido:
 
 
 @strawberry.input
+class UsuarioInput:
+    nombre: str
+    email: str
+    password: str
+
+
+@strawberry.input
+class LoginInput:
+    email: str
+    password: str
+
+
+@strawberry.type
+class AuthPayload:
+    access_token: str
+    refresh_token: str
+    usuario: Usuario
+
+
+@strawberry.type
+class RefreshPayload:
+    access_token: str
+    refresh_token: str
+
+
+@strawberry.input
 class ItemPedidoInput:
     producto_id: strawberry.ID
     cantidad: int
@@ -199,6 +239,7 @@ class Query:
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
+        requerir_admin(info)   # solo un admin ve TODOS los pedidos
         result = await info.context["session"].execute(
             select(PedidoModel).order_by(PedidoModel.id)
         )
@@ -211,6 +252,128 @@ class Query:
 
 @strawberry.type
 class Mutation:
+    # ───────────────────────── Auth ─────────────────────────
+
+    @strawberry.mutation(name="crearUsuario")
+    async def crear_usuario(
+        self, info: strawberry.Info, datos: UsuarioInput
+    ) -> Optional[Usuario]:
+        session = info.context["session"]
+        try:
+            email = validate_email(datos.email, check_deliverability=True).normalized
+        except EmailNotValidError as e:
+            raise Exception(f"Correo inválido: {e}")
+
+        usuario = UsuarioModel(
+            nombre=datos.nombre,
+            email=email,
+            password=pwd_context.hash(datos.password),
+            rol="CLIENTE",   # el registro NUNCA crea admins
+        )
+        session.add(usuario)
+        try:
+            await session.commit()
+        except IntegrityError:   # UNIQUE(email)
+            await session.rollback()
+            raise Exception("Este correo ya se encuentra registrado")
+        return Usuario.from_orm(usuario)
+
+    @strawberry.mutation
+    async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
+        session = info.context["session"]
+        result = await session.execute(
+            select(UsuarioModel).where(UsuarioModel.email == datos.email.strip().lower())
+        )
+        usuario = result.scalar_one_or_none()
+
+        try:
+            valido = usuario is not None and pwd_context.verify(datos.password, usuario.password)
+        except UnknownHashError:   # password guardado en texto plano (datos viejos)
+            valido = False
+        if not valido:
+            raise Exception("Credenciales inválidas")
+
+        payload = {"usuario_id": usuario.id, "email": usuario.email, "rol": usuario.rol}
+        access_token = generar_access_token(payload)
+        refresh_token, jti = generar_refresh_token(payload)
+
+        session.add(RefreshTokenModel(
+            usuario_id=usuario.id,
+            jti=jti,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRACION_DIAS),
+        ))
+        await session.commit()
+        return AuthPayload(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            usuario=Usuario.from_orm(usuario),
+        )
+
+    @strawberry.mutation(name="refrescarToken")
+    async def refrescar_token(
+        self, info: strawberry.Info, refresh_token: str
+    ) -> RefreshPayload:
+        session = info.context["session"]
+        payload = decodificar_token(refresh_token)
+        if payload is None or payload.get("tipo") != "refresh":
+            raise Exception("Refresh Token Inválido")
+
+        jti, usuario_id = payload["jti"], payload["usuario_id"]
+        result = await session.execute(
+            select(RefreshTokenModel).where(RefreshTokenModel.jti == jti)
+        )
+        token_row = result.scalar_one_or_none()
+        if token_row is None:
+            raise Exception("Refresh Token Inválido")
+
+        if token_row.usado:
+            # Reuso → posible robo: se revocan TODAS las sesiones del usuario.
+            # El commit va ANTES del raise, si no el rollback deshace la revocación.
+            await session.execute(
+                update(RefreshTokenModel)
+                .where(RefreshTokenModel.usuario_id == usuario_id)
+                .values(usado=True)
+            )
+            await session.commit()
+            raise Exception("Refresh Token ya utilizado - Session Terminated")
+
+        token_row.usado = True   # rotación: un refresh solo sirve una vez
+
+        # Rol ACTUAL desde la BD, no el que traía el token viejo
+        usuario = await session.get(UsuarioModel, usuario_id)
+        if usuario is None:
+            await session.commit()
+            raise Exception("Refresh Token Inválido")
+
+        datos = {"usuario_id": usuario.id, "email": usuario.email, "rol": usuario.rol}
+        nuevo_access = generar_access_token(datos)
+        nuevo_refresh, nuevo_jti = generar_refresh_token(datos)
+        session.add(RefreshTokenModel(
+            usuario_id=usuario.id,
+            jti=nuevo_jti,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRACION_DIAS),
+        ))
+        await session.commit()
+        return RefreshPayload(access_token=nuevo_access, refresh_token=nuevo_refresh)
+
+    @strawberry.mutation
+    async def logout(self, info: strawberry.Info, refresh_token: str) -> bool:
+        session = info.context["session"]
+        payload = decodificar_token(refresh_token)
+        if payload is None or payload.get("tipo") != "refresh":
+            raise Exception("Refresh Token Inválido")
+
+        result = await session.execute(
+            select(RefreshTokenModel).where(RefreshTokenModel.jti == payload["jti"])
+        )
+        token_row = result.scalar_one_or_none()
+        if token_row is None:
+            raise Exception("Refresh Token Inválido")
+
+        token_row.usado = True
+        await session.commit()
+        return True
+
     @strawberry.mutation(name="crearProducto")
     async def crear_producto(
         self, info: strawberry.Info, *,
@@ -221,6 +384,7 @@ class Mutation:
         descripcion: Optional[str] = None,
         imagen: Optional[str] = None,
     ) -> Producto:
+        requerir_admin(info)
         session = info.context["session"]
 
         categoria = await session.get(CategoriaModel, int(categoria_id))
@@ -246,6 +410,7 @@ class Mutation:
         precio: Optional[float] = None,
         stock: Optional[int] = None,
     ) -> Producto:
+        requerir_admin(info)
         session = info.context["session"]
 
         producto = await session.get(ProductoModel, int(id))
@@ -265,6 +430,7 @@ class Mutation:
 
     @strawberry.mutation(name="eliminarProducto")
     async def eliminar_producto(self, info: strawberry.Info, id: strawberry.ID) -> bool:
+        requerir_admin(info)
         session = info.context["session"]
         producto = await session.get(ProductoModel, int(id))
         if producto is not None:
@@ -278,10 +444,12 @@ class Mutation:
     @strawberry.mutation(name="registrarPedido")
     async def registrar_pedido(
         self, info: strawberry.Info, *,
-        usuario_id: strawberry.ID,
         total: float,
         items: list[ItemPedidoInput],
     ) -> Pedido:
+        # El usuario sale del TOKEN, no del cliente: nadie pide a nombre de otro.
+        # (Va ANTES de session.begin(): no toca la BD, así que no inicia transacción.)
+        auth = requerir_usuario(info)
         session = info.context["session"]
 
         if not items:
@@ -291,9 +459,9 @@ class Mutation:
         # sale sin excepción → COMMIT; con excepción → ROLLBACK automático y el
         # error sube como error de GraphQL (stock restaurado, nada a medias)
         async with session.begin():
-            usuario = await session.get(UsuarioModel, int(usuario_id))
+            usuario = await session.get(UsuarioModel, int(auth["usuario_id"]))
             if usuario is None:
-                raise Exception(f"No existe el usuario {usuario_id}")
+                raise Exception("El usuario de la sesión ya no existe")
 
             pedido = PedidoModel(
                 usuario=usuario,      # relación en memoria → resolver sin query extra

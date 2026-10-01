@@ -3,7 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -44,9 +45,13 @@ class UsuarioModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255))
-    rol: Mapped[str] = mapped_column(String(20))  # 'CLIENTE' | 'ADMIN' tal cual la BD
-    # (si en db.sql es un ENUM de Postgres, usa sqlalchemy.Enum con el nombre exacto del tipo)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    password: Mapped[str] = mapped_column(String(255))  # hash Argon2, nunca texto plano
+    # ENUM nativo de Postgres (rol_usuario). create_type=False: ya existe en db.sql.
+    # Sigue entregando/recibiendo str ('CLIENTE' | 'ADMIN').
+    rol: Mapped[str] = mapped_column(
+        Enum("CLIENTE", "ADMIN", name="rol_usuario", create_type=False)
+    )
 
 
 class DetallePedidoModel(Base):
@@ -75,3 +80,16 @@ class PedidoModel(Base):
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
         back_populates="pedido", lazy="selectin"
     )
+
+
+class RefreshTokenModel(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
+    jti: Mapped[str] = mapped_column(UUID(as_uuid=False), unique=True)
+    usado: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

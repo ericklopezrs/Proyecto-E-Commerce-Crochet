@@ -50,7 +50,6 @@ export default function CheckoutIsland() {
       }));
 
       await registrarPedido({
-        usuarioId: usuario.id, // ← el usuario real, adiós "1"
         total: parseFloat(getTotal()),
         items,
       });
