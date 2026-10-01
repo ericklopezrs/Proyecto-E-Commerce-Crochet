@@ -30,3 +30,5 @@ Si es que siguieron todos los pasos bien, lo primero que deberan de hacer es irs
 Una vez que hayan creado el archivo deberan de poner algo como esto.  
 <img width="306" height="169" alt="imagen" src="https://github.com/user-attachments/assets/e171d359-4df1-4142-a6b1-6c38d6bedcd9" />  
 Obviamente donde dice su contraseña va la contraseña que pusieron de PostgreSQL. Y si es que siguieron todos los pasos bien, todo deberia de funcionar de manera correcta.
+
+REXYYYYYY
