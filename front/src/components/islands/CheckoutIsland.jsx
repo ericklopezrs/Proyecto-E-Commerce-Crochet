@@ -1,10 +1,44 @@
 import { useState } from 'react';
+import { Lock } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
+import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
 
 export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();
+  const { access_token, usuario } = useAuthStore();
   const [saving, setSaving] = useState(false);
+
+  // 🔒 EL GUARD — sin sesión, no hay checkout
+  if (!access_token) {
+    return (
+      <div className="main-container">
+        <main className="content">
+          <div
+            className="empty-cart"
+            style={{
+              maxWidth: '480px',
+              margin: '0 auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            <Lock size={32} color="#64748b" />
+            <p style={{ margin: 0 }}>Necesitas iniciar sesión para completar tu pedido.</p>
+            <a
+              href="/login"
+              className="primary-btn-sm"
+              style={{ textDecoration: 'none', display: 'inline-block' }}
+            >
+              Iniciar Sesión
+            </a>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const handleConfirm = async () => {
     setSaving(true);
@@ -15,7 +49,11 @@ export default function CheckoutIsland() {
         precio_unitario: parseFloat(item.producto.precio),
       }));
 
-      await registrarPedido({ usuarioId: '1', total: parseFloat(getTotal()), items });
+      await registrarPedido({
+        usuarioId: usuario.id, // ← el usuario real, adiós "1"
+        total: parseFloat(getTotal()),
+        items,
+      });
 
       alert('¡Pedido guardado exitosamente!');
       clearCart();

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { hacerLogin } from '../../services/auth.js';
+import { useAuthStore } from '../../store/useAuthStore.js';
 
 export default function LoginIsland() {
   const [email, setEmail] = useState('');
@@ -7,30 +9,26 @@ export default function LoginIsland() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const setSesion = useAuthStore((s) => s.setSesion);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Validaciones (mientras no hay backend)
-    if (!email.trim() || !password) {
-      setError('Completa todos los campos.');
-      return;
-    }
-    if (!email.includes('@')) {
-      setError('Escribe un correo válido.');
-      return;
-    }
+  if (!email.trim() || !password) { setError('Completa todos los campos.'); return; }
+  if (!email.includes('@')) { setError('Escribe un correo válido.'); return; }
 
-    setError('');
-    setLoading(true);
+  setError('');
+  setLoading(true);
 
-    // 🔌 AQUÍ va la llamada al backend (mutation login) cuando exista
-    setTimeout(() => {
-      console.log('Login:', { email, password });
-      alert('¡Login simulado! Backend pendiente 🧸');
-      setLoading(false);
-    }, 1200);
-  };
+  try {
+    const resultado = await hacerLogin(email, password);
+    setSesion(resultado.access_token, resultado.refresh_token, resultado.usuario);
+    window.location.href = '/';
+  } catch (err) {
+    setError(err.message); 
+    setLoading(false);
+  }
+};
 
   return (
     <div className="main-container">

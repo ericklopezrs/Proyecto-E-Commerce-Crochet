@@ -1,7 +1,7 @@
-import { fetchGraphQL } from '../graphql/cliente';
+import { fetchAuth } from '../graphql/clienteAuth.js';
 
 export async function registrarPedido({ usuarioId, total, items }) {
-  return fetchGraphQL(
+  return fetchAuth(
     `
     mutation Registrar(
       $usuario_id: ID!,

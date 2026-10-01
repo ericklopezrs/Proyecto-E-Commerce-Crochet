@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 
+import { registrarUsuario } from '../../services/auth.js';
+
+
+
 export default function RegistroIsland() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -10,7 +14,7 @@ export default function RegistroIsland() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validaciones
@@ -34,12 +38,14 @@ export default function RegistroIsland() {
     setError('');
     setLoading(true);
 
-    // 🔌 AQUÍ va la llamada al backend (mutation registro) cuando exista
-    setTimeout(() => {
-      console.log('Registro:', { nombre, email, password });
-      alert('¡Registro simulado! Backend pendiente 🧸');
-      setLoading(false);
-    }, 1200);
+  try {
+    await registrarUsuario(nombre, email, password);
+    alert('¡Cuenta creada! Ahora inicia sesión 🧸');
+    window.location.href = '/login'; // el registro NO regresa tokens → a loguearse
+  } catch (err) {
+    setError(err.message); // "Este correo ya se encuentra registrado" etc.
+    setLoading(false);
+  }
   };
 
   return (
