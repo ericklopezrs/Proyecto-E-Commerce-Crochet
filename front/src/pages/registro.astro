@@ -1,0 +1,12 @@
+---
+import LoginLayout from '../layouts/LoginLayout.astro';
+import RegistroIsland from '../components/islands/RegistroIsland.jsx';
+import { getCategorias } from '../lib/data';
+import '../styles/login.css';
+
+const categorias = await getCategorias();
+---
+
+<LoginLayout>
+  <RegistroIsland client:load />
+</LoginLayout>

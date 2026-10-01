@@ -35,7 +35,7 @@ app.include_router(graphql_app, prefix="/graphql")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:4321"],  # ← agrégale el 4321
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

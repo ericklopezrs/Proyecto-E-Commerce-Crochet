@@ -1,36 +1,43 @@
-# Frontend — Peluches Crochet (P2-6)
+# Astro Starter Kit: Minimal
 
-App React (Vite) que consume el backend GraphQL del e-commerce.
-
-## Requisitos
-- Node.js 18+
-- Backend corriendo en `http://localhost:4000/graphql` (ver `back/README.md`)
-
-## Instalación
-
-```bash
-npm install
-npm run dev
+```sh
+npm create astro@latest -- --template minimal
 ```
 
-La app queda disponible en `http://localhost:5173` (o el puerto que indique Vite).
+> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
 
-## Configuración
+## 🚀 Project Structure
 
-El endpoint del backend está definido en `src/graphql/cliente.js`:
+Inside of your Astro project, you'll see the following folders and files:
 
-```javascript
-const GRAPHQL_URL = 'http://localhost:4000/graphql';
+```text
+/
+├── public/
+├── src/
+│   └── pages/
+│       └── index.astro
+└── package.json
 ```
 
-Si tu backend corre en otro host o puerto, ajusta esa constante.
+Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
 
-## Flujo de la app
+There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
 
-Home → Detalle de categoría → Detalle de producto → Carrito → Checkout,
-controlado por estado (`currentView`) — sin rutas de URL.
+Any static assets, like images, can be placed in the `public/` directory.
 
-## Estado global
+## 🧞 Commands
 
-El carrito se maneja con **Zustand** (`src/store/useCartStore.js`), compartido
-entre el TopBar, el catálogo y el checkout.
+All commands are run from the root of the project, from a terminal:
+
+| Command                   | Action                                           |
+| :------------------------ | :----------------------------------------------- |
+| `npm install`             | Installs dependencies                            |
+| `npm run dev`             | Starts local dev server at `localhost:4321`      |
+| `npm run build`           | Build your production site to `./dist/`          |
+| `npm run preview`         | Preview your build locally, before deploying     |
+| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
+| `npm run astro -- --help` | Get help using the Astro CLI                     |
+
+## 👀 Want to learn more?
+
+Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

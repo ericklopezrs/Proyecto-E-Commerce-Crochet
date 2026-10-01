@@ -38,7 +38,7 @@ export default function TopBar({
         {/* Izquierda */}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-            <img src={logo} alt="Logo" className="brand-logo-img" />
+            <img src={logo.src} alt="Logo" className="brand-logo-img" />
             <h1 className="brand-title">Peluches Crochet</h1>
           </div>
         </div>

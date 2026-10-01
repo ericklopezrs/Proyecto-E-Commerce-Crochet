@@ -381,6 +381,7 @@
   font-weight: 700;
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box; /* ← ESTA */
 }
 
 .success-btn {
@@ -392,6 +393,7 @@
   font-weight: 700;
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box; /* ← también */
 }
 
 .cart-box {
@@ -757,3 +759,23 @@
 .grid-productos .product-card:nth-child(10) { animation-delay: 0.58s; }
 .grid-productos .product-card:nth-child(11) { animation-delay: 0.64s; }
 .grid-productos .product-card:nth-child(12) { animation-delay: 0.70s; }
+
+/* ====== BOTÓN ELIMINAR DEL CARRITO ====== */
+.cart-remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 6px;
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-remove-btn:hover {
+  color: #b91c1c;
+  transform: scale(1.15);
+}
