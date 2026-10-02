@@ -5,6 +5,8 @@ from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+import uuid as uuid_mod  # arriba del archivo, junto a los demás imports
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM, UUID as PG_UUID
 
 from database import Base
 
@@ -45,8 +47,11 @@ class UsuarioModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
     email: Mapped[str] = mapped_column(String(255))
-    rol: Mapped[str] = mapped_column(String(20))  # 'CLIENTE' | 'ADMIN' tal cual la BD
-    # (si en db.sql es un ENUM de Postgres, usa sqlalchemy.Enum con el nombre exacto del tipo)
+    password: Mapped[str] = mapped_column(String(255))
+    rol: Mapped[str] = mapped_column(
+        PG_ENUM("CLIENTE", "ADMIN", name="rol_usuario", create_type=False),
+        server_default="CLIENTE",
+    )     # queda String: asyncpg lee el ENUM como str
 
 
 class DetallePedidoModel(Base):
@@ -75,3 +80,16 @@ class PedidoModel(Base):
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
         back_populates="pedido", lazy="selectin"
     )
+    
+
+class RefreshTokenModel(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
+    jti: Mapped[uuid_mod.UUID] = mapped_column(PG_UUID(as_uuid=True), unique=True, index=True)
+    usado: Mapped[bool] = mapped_column(default=False)
+    creado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

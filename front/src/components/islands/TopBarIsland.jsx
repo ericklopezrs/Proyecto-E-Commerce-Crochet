@@ -6,6 +6,7 @@ import { hacerLogout } from '../../services/auth.js';
 
 export default function TopBarIsland({ categorias }) {
   const cart = useCartStore((s) => s.cart);
+  const clearCart = useCartStore((s) => s.clearCart);   // ← NUEVO, ahora SÍ adentro ✓
   const searchTerm = useUiStore((s) => s.searchTerm);
   const setSearchTerm = useUiStore((s) => s.setSearchTerm);
   const selectedCategoria = useUiStore((s) => s.selectedCategoria);
@@ -19,12 +20,12 @@ export default function TopBarIsland({ categorias }) {
 
   const handleLogout = async () => {
     try {
-      // El logout DEBE llamar la mutation — desactiva el token en la BD
-      if (refresh_token) await hacerLogout(refresh_token);
+      if (refresh_token) await hacerLogout(refresh_token); // desactiva el token en BD
     } catch {
-      // Si truena (token ya vencido, etc.), igual cerramos local — no nos estancamos
+      // token ya inválido → igual cerramos local
     }
     limpiarSesion();
+    clearCart();   // el carrito muere con la sesión
     window.location.href = '/';
   };
 

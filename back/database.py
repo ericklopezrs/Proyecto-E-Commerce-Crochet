@@ -20,7 +20,7 @@ DATABASE_URL = (
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
-engine = create_async_engine(DATABASE_URL, echo=True)  # echo=False en producción
+engine = create_async_engine(DATABASE_URL, echo=False)  # ← era True  # echo=False en producción
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

@@ -21,14 +21,11 @@ export async function fetchAuth(query, variables = {}) {
 
   let { data, errors } = await hacerPeticion(query, variables, access_token);
 
-  // 🔄 ¿El access token expiró? → refresh automático y reintento
   const expiro = errors?.some((e) => e.message === 'TOKEN_EXPIRADO');
 
   if (expiro && refresh_token) {
     try {
       const nuevos = await refrescarToken(refresh_token);
-      // ⚠️ Reemplazamos AMBOS tokens (rotación) — usar el refresh viejo
-      // después dispara la detección de robo y mata TODAS las sesiones
       useAuthStore.getState().setTokens(nuevos.access_token, nuevos.refresh_token);
 
       ({ data, errors } = await hacerPeticion(

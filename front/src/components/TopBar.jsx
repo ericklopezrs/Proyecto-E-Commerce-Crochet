@@ -34,10 +34,10 @@ export default function TopBar({
   return (
     <header className="header">
 
-      {/* ====== FILA 1: LOGO | BÚSQUEDA | USUARIO + CARRITO ====== */}
+      {}
       <div className="header-main">
 
-        {/* Izquierda */}
+        {}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
             <img src={logo.src} alt="Logo" className="brand-logo-img" />
@@ -45,7 +45,7 @@ export default function TopBar({
           </div>
         </div>
 
-        {/* Centro: búsqueda expandible */}
+        {}
         <div className={`search-expand ${isSearchOpen ? 'open' : ''}`}>
           <button className="search-toggle" onClick={toggleSearch} title="Buscar">
             <i className="fa-solid fa-magnifying-glass"></i>
@@ -63,9 +63,9 @@ export default function TopBar({
           />
         </div>
 
-        {/* Derecha: usuario + carrito */}
+        {/* Derecha: sesión + carrito */}
         <div className="header-side header-side-right">
-          {usuario && (
+          {usuario ? (
             <div className="header-user">
               <span className="header-user-name">
                 Hola, {usuario.nombre.split(' ')[0]}
@@ -78,6 +78,11 @@ export default function TopBar({
                 <i className="fa-solid fa-right-from-bracket"></i>
               </button>
             </div>
+          ) : (
+            <a href="/login" className="header-login-btn">
+              <i className="fa-solid fa-right-to-bracket" style={{ marginRight: '6px' }}></i>
+              Iniciar Sesión
+            </a>
           )}
 
           <button className="header-cart-button" onClick={onGoCart}>
@@ -89,7 +94,7 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* ====== FILA 2: CATEGORÍAS ====== */}
+      {}
       <nav className="category-bar">
         <button
           className={`category-chip ${selectedCategoria === 'TODAS' ? 'active' : ''}`}

@@ -17,6 +17,7 @@ Servidor GraphQL en FastAPI + Strawberry, conectado a PostgreSQL con SQLAlchemy 
 2. Instala dependencias:
 ```bash
    pip install fastapi uvicorn strawberry-graphql[fastapi] sqlalchemy[asyncio] asyncpg python-dotenv
+   pip install "passlib[argon2]" "python-jose[cryptography]" email-validator python-dotenv
 ```
 
 3. Crea la base de datos y carga el esquema + datos de ejemplo:

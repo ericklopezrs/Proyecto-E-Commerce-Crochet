@@ -17,7 +17,6 @@ export default function RegistroIsland() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones
     if (!nombre.trim() || !email.trim() || !password || !confirm) {
       setError('Completa todos los campos.');
       return;
@@ -41,9 +40,9 @@ export default function RegistroIsland() {
   try {
     await registrarUsuario(nombre, email, password);
     alert('¡Cuenta creada! Ahora inicia sesión 🧸');
-    window.location.href = '/login'; // el registro NO regresa tokens → a loguearse
+    window.location.href = '/login'; 
   } catch (err) {
-    setError(err.message); // "Este correo ya se encuentra registrado" etc.
+    setError(err.message); 
     setLoading(false);
   }
   };

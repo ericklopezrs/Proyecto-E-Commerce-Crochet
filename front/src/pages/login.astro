@@ -1,12 +1,9 @@
 ---
 import LoginLayout from '../layouts/LoginLayout.astro';
 import LoginIsland from '../components/islands/LoginIsland.jsx';
-import { getCategorias } from '../lib/data';
 import '../styles/login.css';
-
-const categorias = await getCategorias();
 ---
 
-<LoginLayout>
+<LoginLayout title="Iniciar Sesión — Peluches Crochet">
   <LoginIsland client:load />
 </LoginLayout>

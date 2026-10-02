@@ -14,7 +14,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
         Filtros
       </h3>
 
-      {/* ORDEN */}
+      {}
       <div className="filter-group">
         <h4 className="filter-subtitle">Ordenar por</h4>
 
