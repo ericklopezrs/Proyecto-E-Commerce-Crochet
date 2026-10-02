@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CheckoutIsland from '../components/islands/CheckoutIsland.jsx';
+import { getCategorias } from '../lib/data';
+
+const categorias = await getCategorias();
+---
+
+<Layout title="Checkout — Peluches Crochet" categorias={categorias}>
+  <CheckoutIsland client:load />
+</Layout>

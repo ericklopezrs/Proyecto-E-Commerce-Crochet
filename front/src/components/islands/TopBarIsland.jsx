@@ -1,0 +1,52 @@
+import TopBar from '../TopBar.jsx';
+import { useCartStore } from '../../store/useCartStore.js';
+import { useUiStore } from '../../store/useUiStore.js';
+import { useAuthStore } from '../../store/useAuthStore.js';
+import { hacerLogout } from '../../services/auth.js';
+
+export default function TopBarIsland({ categorias }) {
+  const cart = useCartStore((s) => s.cart);
+  const clearCart = useCartStore((s) => s.clearCart);   // ← NUEVO, ahora SÍ adentro ✓
+  const searchTerm = useUiStore((s) => s.searchTerm);
+  const setSearchTerm = useUiStore((s) => s.setSearchTerm);
+  const selectedCategoria = useUiStore((s) => s.selectedCategoria);
+  const setSelectedCategoria = useUiStore((s) => s.setSelectedCategoria);
+
+  const usuario = useAuthStore((s) => s.usuario);
+  const refresh_token = useAuthStore((s) => s.refresh_token);
+  const limpiarSesion = useAuthStore((s) => s.limpiarSesion);
+
+  const totalItemsCount = cart.reduce((acc, item) => acc + item.cantidad, 0);
+
+  const handleLogout = async () => {
+    try {
+      if (refresh_token) await hacerLogout(refresh_token); // desactiva el token en BD
+    } catch {
+      // token ya inválido → igual cerramos local
+    }
+    limpiarSesion();
+    clearCart();   // el carrito muere con la sesión
+    window.location.href = '/';
+  };
+
+  return (
+    <TopBar
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      totalItemsCount={totalItemsCount}
+      onGoHome={() => {
+        setSelectedCategoria('TODAS');
+        if (window.location.pathname !== '/') window.location.href = '/';
+      }}
+      onGoCart={() => (window.location.href = '/carrito')}
+      categorias={categorias}
+      selectedCategoria={selectedCategoria}
+      onSelectCategoria={(catId) => {
+        setSelectedCategoria(catId);
+        if (window.location.pathname !== '/') window.location.href = '/';
+      }}
+      usuario={usuario}
+      onLogout={handleLogout}
+    />
+  );
+}

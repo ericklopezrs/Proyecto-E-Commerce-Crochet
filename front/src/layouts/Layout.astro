@@ -1,0 +1,33 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import TopBarIsland from '../components/islands/TopBarIsland.jsx';
+import FloatingCartIsland from '../components/islands/FloatingCartIsland.jsx';
+import Footer from '../components/Footer.jsx';
+import '../styles/App.css';
+
+const { title = 'Peluches Crochet', categorias = [] } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="app-wrapper">
+      <TopBarIsland client:load categorias={categorias} />
+      <FloatingCartIsland client:idle />
+
+      <slot />
+
+      <Footer />
+    </div>
+  </body>
+</html>
