@@ -4,7 +4,7 @@ Lo primero que se debe de hace es instalar PostgreSQL, buscando "PostgreSQL down
 ## Pasos
 
 **Paso 1:** 
-Lo primero que deben de hacer es irse a la esquina superior izquierda, y veran que dice "Nueva Conexion".
+Lo primero que deben de hacer es irse a la esquina superior izquierda, y veran que dice "Nueva Conexion".  
 <img width="476" height="708" alt="imagen" src="https://github.com/user-attachments/assets/90b020ff-a6c4-4371-8174-39f1e08a498d" />
 
 Le daran ahi, y les pedira el usuario, y la contraseña. 
@@ -12,7 +12,7 @@ Le daran ahi, y les pedira el usuario, y la contraseña.
 > Ustedes al instalar PostgreSQL, se les pedira una contraseña, por lo cual esa contraseña sera la que deberan introducir en la nueva conexion. El usuario, y la base de datos la dejan sin mover.
 
 **Paso 2:**  
-Una vez que tengan la conexion creada, se deberan ir a base de datos, despues a postgres, esquemas y lleguen hasta public.
+Una vez que tengan la conexion creada, se deberan ir a base de datos, despues a postgres, esquemas y lleguen hasta public.  
 <img width="483" height="98" alt="imagen" src="https://github.com/user-attachments/assets/1fb458e0-44e8-458d-b700-58c84b0a7672" />
 
 En public le daran click derecho, y buscaran donde dice herramientas y le picaran a restaurar backup.
