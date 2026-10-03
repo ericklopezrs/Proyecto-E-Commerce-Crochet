@@ -1,7 +1,7 @@
 import { useAuthStore } from '../store/useAuthStore.js';
 import { refrescarToken } from '../services/auth.js';
 
-const GRAPHQL_URL = 'http://localhost:4000/graphql';
+const GRAPHQL_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
 
 async function hacerPeticion(query, variables, token) {
   const headers = { 'Content-Type': 'application/json' };
