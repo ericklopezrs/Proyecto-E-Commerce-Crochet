@@ -13,7 +13,6 @@ export default function LoginIsland() {
   const setSesion = useAuthStore((s) => s.setSesion);
   const access_token = useAuthStore((s) => s.access_token);
 
-  // 🔒 Ya hay sesión activa → no tiene caso el login, al inicio
   useEffect(() => {
     if (access_token) window.location.href = '/';
   }, [access_token]);
@@ -32,9 +31,6 @@ export default function LoginIsland() {
 
       setSesion(resultado.access_token, resultado.refresh_token, resultado.usuario);
 
-      // 🔄 Recargamos el carrito desde la llave de ESTE usuario.
-      // Si ya tenía carrito guardado → aparece. Si no → el del
-      // invitado se queda en memoria y se adopta como suyo.
       await useCartStore.persist.rehydrate();
 
       window.location.href = '/';

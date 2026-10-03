@@ -18,7 +18,6 @@ export default function TopBar({
 
   const toggleSearch = () => {
     if (isSearchOpen) {
-      // Cerrar y limpiar
       setIsSearchOpen(false);
       if (searchTerm) onSearchChange('');
     } else {

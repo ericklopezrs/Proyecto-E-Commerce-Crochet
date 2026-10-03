@@ -18,8 +18,6 @@ class CategoriaModel(Base):
     nombre: Mapped[str] = mapped_column(String(100))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
 
-    # Inversa (uno→muchos). "raise": si algo la accede sin cargarla, error claro.
-    # Se consulta explícitamente en su resolver (ver schema.py).
     productos: Mapped[list["ProductoModel"]] = relationship(
         back_populates="categoria", lazy="raise"
     )
@@ -31,7 +29,7 @@ class ProductoModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
-    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))  # ajusta precisión a tu db.sql
+    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))  
     imagen: Mapped[Optional[str]] = mapped_column(Text)
     stock: Mapped[int]
     categoria_id: Mapped[int] = mapped_column(ForeignKey("categorias.id"))
@@ -51,11 +49,11 @@ class UsuarioModel(Base):
     rol: Mapped[str] = mapped_column(
         PG_ENUM("CLIENTE", "ADMIN", name="rol_usuario", create_type=False),
         server_default="CLIENTE",
-    )     # queda String: asyncpg lee el ENUM como str
+    )     
 
 
 class DetallePedidoModel(Base):
-    __tablename__ = "pedido_detalles"  # antes decía "detalles_pedido" # ⚠️ ÚNICO lugar donde vive el nombre — ajústalo a tu db.sql
+    __tablename__ = "pedido_detalles"  
 
     id: Mapped[int] = mapped_column(primary_key=True)
     pedido_id: Mapped[int] = mapped_column(ForeignKey("pedidos.id"))

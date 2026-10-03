@@ -1,4 +1,5 @@
 # main.py
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
@@ -7,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from strawberry.fastapi import GraphQLRouter
-from jwt_service import decodificar_token      
+from jwt_service import decodificar_token
 
 
 from database import engine, get_db
@@ -34,9 +35,9 @@ async def get_context(request: Request, session: AsyncSession = Depends(get_db))
         token = auth_header.removeprefix("Bearer ")
         payload = decodificar_token(token)
         if payload is None:
-            token_expirado = True           # HABÍA token, pero ya no sirve
+            token_expirado = True
         elif payload.get("tipo") == "access":
-            usuario = payload               # sesión válida — el payload ES el usuario
+            usuario = payload
 
     return {
         "session": session,
@@ -50,12 +51,21 @@ graphql_app = GraphQLRouter(schema, context_getter=get_context)
 app = FastAPI(lifespan=lifespan)
 app.include_router(graphql_app, prefix="/graphql")
 
+# Orígenes permitidos: local siempre, y el dominio de Netlify vía FRONTEND_URL
+origenes = ["http://localhost:5173", "http://localhost:4321"]
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    origenes.append(frontend_url.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4321"],  # ← agrégale el 4321
+    allow_origins=origenes,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Si la carpeta no existe (por ejemplo, un repo sin imágenes), la crea
+# en vez de tronar al arrancar
+os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

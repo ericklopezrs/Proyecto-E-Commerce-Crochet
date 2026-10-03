@@ -6,7 +6,6 @@ def requerir_usuario(info: strawberry.Info) -> dict:
     usuario = info.context.get("usuario")
     if usuario is None:
         if info.context.get("token_expirado"):
-            # 🔄 Contrato con el front: este string dispara el auto-refresh
             raise Exception("TOKEN_EXPIRADO")
         raise Exception("No autenticado")
     return usuario

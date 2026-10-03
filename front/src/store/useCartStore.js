@@ -2,14 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore.js';
 
-// ¿Quién navega? Cada quien guarda su carrito en SU llave
+
 const idDelNavegante = () => useAuthStore.getState().usuario?.id ?? 'invitado';
 
-// Storage "listo": redirige cada lectura/escritura a la llave del
-// usuario que esté conectado EN ESE MOMENTO
 const carritoPorUsuario = {
   getItem: (name) => {
-    if (typeof window === 'undefined') return null; // en el server no hay localStorage
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem(`${name}-${idDelNavegante()}`);
   },
   setItem: (name, value) => {
@@ -54,7 +52,7 @@ export const useCartStore = create(
         get().cart.reduce((t, i) => t + i.producto.precio * i.cantidad, 0),
     }),
     {
-      name: 'peluches-cart', // la base: se le pega el id → peluches-cart-2, peluches-cart-invitado...
+      name: 'peluches-cart',
       storage: createJSONStorage(() => carritoPorUsuario),
       partialize: (state) => ({ cart: state.cart }),
     }

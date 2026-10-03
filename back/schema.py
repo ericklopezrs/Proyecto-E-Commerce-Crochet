@@ -1,4 +1,3 @@
-# schema.py
 import enum
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -26,7 +25,6 @@ from models import (
     UsuarioModel,
 )
 
-# El jefe de los hasheos: argon2 para todo
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
@@ -36,17 +34,12 @@ class RolUsuario(enum.Enum):
     ADMIN = "ADMIN"
 
 
-# ─────────────────────────────────────────────────────────────
-# Types: envuelven el objeto ORM en _orm (from_row → from_orm)
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class Usuario:
     id: strawberry.ID
     nombre: str
     email: str
     rol: RolUsuario
-    # password JAMÁS se expone en el schema — vive solo en la BD y en el login
 
     @classmethod
     def from_orm(cls, obj: UsuarioModel) -> "Usuario":
@@ -73,7 +66,7 @@ class Producto:
         return cls(
             id=str(obj.id),
             nombre=obj.nombre,
-            precio=float(obj.precio),   # Numeric → Decimal → float
+            precio=float(obj.precio),
             stock=obj.stock,
             descripcion=obj.descripcion,
             imagen=obj.imagen,
@@ -82,7 +75,6 @@ class Producto:
 
     @strawberry.field
     def categoria(self) -> Optional["Categoria"]:
-        # Ya viene cargada (selectin) → resolver puro: sin async, sin SQL, sin N+1
         return Categoria.from_orm(self._orm.categoria) if self._orm.categoria else None
 
 
@@ -104,7 +96,6 @@ class Categoria:
 
     @strawberry.field
     def productos(self) -> list["Producto"]:
-        # Ya vienen cargadas por el selectinload de la query padre — cero queries aquí
         return [Producto.from_orm(p) for p in self._orm.productos]
 
 
@@ -126,7 +117,7 @@ class DetallePedido:
 
     @strawberry.field
     def producto(self) -> "Producto":
-        return Producto.from_orm(self._orm.producto)   # selectin: ya cargado
+        return Producto.from_orm(self._orm.producto)
 
 
 @strawberry.type
@@ -140,7 +131,7 @@ class Pedido:
     @classmethod
     def from_orm(cls, obj: PedidoModel) -> "Pedido":
         fecha = obj.fecha
-        if isinstance(fecha, datetime):   # TIMESTAMP → ISO
+        if isinstance(fecha, datetime):
             fecha = fecha.isoformat()
         return cls(
             id=str(obj.id),
@@ -158,10 +149,6 @@ class Pedido:
     def detalles(self) -> list["DetallePedido"]:
         return [DetallePedido.from_orm(d) for d in self._orm.detalles]
 
-
-# ─────────────────────────────────────────────────────────────
-# Inputs
-# ─────────────────────────────────────────────────────────────
 
 @strawberry.input
 class ItemPedidoInput:
@@ -183,13 +170,8 @@ class UsuarioInput:
     password: str
 
 
-# ─────────────────────────────────────────────────────────────
-# Auth Payloads
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class AuthPayload:
-    # auto_camel_case=False → se exponen tal cual: el frontend ya los pide así ✓
     access_token: str
     refresh_token: str
     usuario: Usuario
@@ -201,17 +183,13 @@ class RefreshPayload:
     refresh_token: str
 
 
-# ─────────────────────────────────────────────────────────────
-# Query
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class Query:
     @strawberry.field
     async def categorias(self, info: strawberry.Info) -> list[Categoria]:
         result = await info.context["session"].execute(
             select(CategoriaModel)
-            .options(selectinload(CategoriaModel.productos))  # ← 2 viajes, no 11
+            .options(selectinload(CategoriaModel.productos))
             .order_by(CategoriaModel.id)
         )
         return [Categoria.from_orm(c) for c in result.scalars().all()]
@@ -245,7 +223,6 @@ class Query:
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
-        # 🔒 Candado nivel 2: ver TODOS los pedidos de la tienda = solo admins
         requerir_admin(info)
         result = await info.context["session"].execute(
             select(PedidoModel).order_by(PedidoModel.id)
@@ -253,14 +230,8 @@ class Query:
         return [Pedido.from_orm(p) for p in result.scalars().all()]
 
 
-# ─────────────────────────────────────────────────────────────
-# Mutation
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class Mutation:
-
-    # ─────────── Productos ───────────
 
     @strawberry.mutation(name="crearProducto")
     async def crear_producto(
@@ -322,8 +293,6 @@ class Mutation:
             await session.commit()
         return True
 
-    # ─────────── Auth ───────────
-
     @strawberry.mutation
     async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
         session = info.context["session"]
@@ -333,14 +302,9 @@ class Mutation:
         )
         usuario = result.scalars().first()
 
-        # Mismo mensaje para "no existe" y "contraseña mala":
-        # no le regalamos al atacante qué correos sí están registrados
         if usuario is None:
             raise Exception("Credenciales inválidas")
 
-        # try/except: si el hash está corrupto o es TEXTO PLANO
-        # (ej. usuarios sembrados a mano), passlib truena en vez de
-        # devolver False — lo blindamos y cuenta como credencial mala
         try:
             password_ok = pwd_context.verify(datos.password, usuario.password)
         except Exception:
@@ -371,7 +335,7 @@ class Mutation:
             usuario=Usuario.from_orm(usuario),
         )
 
-    @strawberry.mutation(name="crearUsuario")  # patrón del proyecto: snake acá, camel en el schema
+    @strawberry.mutation(name="crearUsuario")
     async def crear_usuario(self, info: strawberry.Info, datos: UsuarioInput) -> Usuario:
         session = info.context["session"]
 
@@ -381,8 +345,6 @@ class Mutation:
         except EmailNotValidError as e:
             raise Exception(f"Correo inválido: {e}")
 
-        # SELECT previo → mensaje claro. El UNIQUE de la BD es la red de
-        # seguridad final si dos registros chocan al mismo tiempo
         result = await session.execute(
             select(UsuarioModel).where(UsuarioModel.email == normalized_email)
         )
@@ -393,11 +355,10 @@ class Mutation:
             nombre=datos.nombre,
             email=normalized_email,
             password=pwd_context.hash(datos.password),
-            # rol: NO se pasa — el DEFAULT 'CLIENTE' de la columna ENUM lo pone Postgres
         )
         session.add(usuario)
         await session.commit()
-        await session.refresh(usuario)  # trae el rol que acabó de poner el DEFAULT
+        await session.refresh(usuario)
 
         return Usuario.from_orm(usuario)
 
@@ -420,8 +381,6 @@ class Mutation:
             raise Exception("Refresh Token Inválido")
 
         if row.usado:
-            # 🔒 REUSO DETECTADO = posible robo → se revocan TODAS las sesiones
-            # del usuario, en todas partes. Forzamos login desde cero.
             await session.execute(
                 update(RefreshTokenModel)
                 .where(RefreshTokenModel.usuario_id == usuario_id)
@@ -430,9 +389,8 @@ class Mutation:
             await session.commit()
             raise Exception("Refresh Token ya utilizado - Sesión Terminada")
 
-        row.usado = True  # rotación: este refresh muere aquí
+        row.usado = True
 
-        # Datos FRESCOS del usuario (el rol pudo cambiar desde que se emitió)
         usuario = await session.get(UsuarioModel, usuario_id)
         if usuario is None:
             raise Exception("Usuario no encontrado")
@@ -451,7 +409,7 @@ class Mutation:
             usado=False,
             expires_at=datetime.now(timezone.utc) + timedelta(days=7),
         ))
-        await session.commit()  # un solo commit: rotación atómica
+        await session.commit()
 
         return RefreshPayload(access_token=nuevo_access, refresh_token=nuevo_refresh)
 
@@ -470,29 +428,24 @@ class Mutation:
         if row is None:
             raise Exception("Refresh Token Inválido")
 
-        row.usado = True  # 🔒 desactivar el token en BD — lo exige la seguridad
+        row.usado = True
         await session.commit()
         return True
-
-    # ─────────── Pedidos ───────────
 
     @strawberry.mutation(name="registrarPedido")
     async def registrar_pedido(
         self, info: strawberry.Info, *,
-        usuario_id: strawberry.ID,   # ⚠️ se recibe por compatibilidad con el front, pero YA NO SE USA
+        usuario_id: strawberry.ID,
         total: float,
         items: list[ItemPedidoInput],
     ) -> Pedido:
         session = info.context["session"]
 
-        # 🔒 Candado nivel 1: el usuario sale del TOKEN, no del cliente —
-        # nadie puede comprar a nombre de otro, aunque mande el id que sea
         usuario_token = requerir_usuario(info)
 
         if not items:
             raise Exception("El pedido no tiene items")
 
-        # async with session.begin(): COMMIT al salir bien, ROLLBACK si algo truena
         async with session.begin():
             usuario = await session.get(UsuarioModel, int(usuario_token["usuario_id"]))
             if usuario is None:
@@ -507,8 +460,6 @@ class Mutation:
             session.add(pedido)
 
             for item in items:
-                # with_for_update bloquea la fila hasta el COMMIT: dos pedidos
-                # simultáneos del mismo producto ya no pueden dejar el stock negativo
                 producto = await session.get(
                     ProductoModel, int(item.producto_id), with_for_update=True
                 )
