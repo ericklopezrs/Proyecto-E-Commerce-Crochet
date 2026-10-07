@@ -45,6 +45,15 @@ export const useCartStore = create(
         }
       },
 
+      updateQuantity: (id, cantidad) =>
+        set({
+          cart: get().cart.map((i) => {
+            if (i.producto.id !== id) return i;
+            const max = Math.max(1, i.producto.stock ?? 10);
+            return { ...i, cantidad: Math.min(Math.max(1, cantidad), max) };
+          }),
+        }),
+
       removeFromCart: (id) =>
         set({ cart: get().cart.filter((i) => i.producto.id !== id) }),
 
@@ -54,7 +63,7 @@ export const useCartStore = create(
         get().cart.reduce((t, i) => t + i.producto.precio * i.cantidad, 0),
     }),
     {
-      name: 'peluches-cart', // la base: se le pega el id → peluches-cart-2, peluches-cart-invitado...
+      name: 'peluches-cart', 
       storage: createJSONStorage(() => carritoPorUsuario),
       partialize: (state) => ({ cart: state.cart }),
     }

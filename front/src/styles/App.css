@@ -868,3 +868,214 @@
   background-color: #f5f3ff;
   transform: scale(1.03);
 }
+/* ===== Carrito estilo Mercado Libre (pegar al FINAL de App.css) ===== */
+
+.ml-cart {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.ml-cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Lista de productos */
+.ml-list {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.ml-item {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ml-item:last-child {
+  border-bottom: none;
+}
+
+.ml-thumb-link {
+  flex-shrink: 0;
+}
+
+.ml-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  display: block;
+}
+
+.ml-thumb-sm {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.ml-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ml-item-name {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.ml-item-name:hover {
+  text-decoration: underline;
+}
+
+.ml-item-unit {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.ml-item-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* Selector de cantidad */
+.ml-qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.ml-qty button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background-color: #ffffff;
+  font-size: 18px;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.ml-qty button:hover:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.ml-qty button:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.ml-qty span {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ml-stock {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ml-stock.alerta {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.ml-remove {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ml-remove:hover {
+  text-decoration: underline;
+}
+
+.ml-item-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Resumen de compra */
+.ml-summary {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 20px;
+  position: sticky;
+  top: 16px;
+}
+
+.ml-summary-title {
+  margin: 0 0 16px 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.ml-summary-row {
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+  font-size: 14px;
+  padding-bottom: 12px;
+}
+
+.ml-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 0 18px 0;
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+/* Celular */
+@media (max-width: 800px) {
+  .ml-cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ml-summary {
+    position: static;
+  }
+
+  .ml-item {
+    flex-wrap: wrap;
+  }
+
+  .ml-thumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .ml-item-price {
+    width: 100%;
+    text-align: right;
+  }
+}
