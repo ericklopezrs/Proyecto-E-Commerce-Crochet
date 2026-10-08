@@ -1,19 +1,17 @@
-# schema.py
 import enum
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from sqlalchemy.orm import selectinload
 
 import strawberry
 from email_validator import EmailNotValidError, validate_email
 from passlib.context import CryptContext
-from passlib.exc import UnknownHashError
 from sqlalchemy import func, select, update
-from sqlalchemy.exc import IntegrityError
 from strawberry.schema.config import StrawberryConfig
 
 from auth import requerir_admin, requerir_usuario
 from jwt_service import (
-    REFRESH_EXPIRACION_DIAS,
     decodificar_token,
     generar_access_token,
     generar_refresh_token,
@@ -35,10 +33,6 @@ class RolUsuario(enum.Enum):
     CLIENTE = "CLIENTE"
     ADMIN = "ADMIN"
 
-
-# ─────────────────────────────────────────────────────────────
-# Types: envuelven el objeto ORM en _orm (from_row → from_orm)
-# ─────────────────────────────────────────────────────────────
 
 @strawberry.type
 class Usuario:
@@ -72,7 +66,7 @@ class Producto:
         return cls(
             id=str(obj.id),
             nombre=obj.nombre,
-            precio=float(obj.precio),   # Numeric → Decimal → float
+            precio=float(obj.precio),
             stock=obj.stock,
             descripcion=obj.descripcion,
             imagen=obj.imagen,
@@ -81,7 +75,6 @@ class Producto:
 
     @strawberry.field
     def categoria(self) -> Optional["Categoria"]:
-        # Ya viene cargada (selectin) → resolver puro: sin async, sin SQL, sin N+1
         return Categoria.from_orm(self._orm.categoria) if self._orm.categoria else None
 
 
@@ -102,16 +95,8 @@ class Categoria:
         )
 
     @strawberry.field
-    async def productos(self, info: strawberry.Info) -> list["Producto"]:
-        # Relación inversa: query explícita (selectin aquí arrastraría la tabla
-        # completa de productos en cascada). Igual que en la versión asyncpg,
-        # pero con query builder en vez de SQL crudo.
-        result = await info.context["session"].execute(
-            select(ProductoModel)
-            .where(ProductoModel.categoria_id == self._orm.id)
-            .order_by(ProductoModel.id)
-        )
-        return [Producto.from_orm(p) for p in result.scalars().all()]
+    def productos(self) -> list["Producto"]:
+        return [Producto.from_orm(p) for p in self._orm.productos]
 
 
 @strawberry.type
@@ -132,7 +117,7 @@ class DetallePedido:
 
     @strawberry.field
     def producto(self) -> "Producto":
-        return Producto.from_orm(self._orm.producto)   # selectin: ya cargado
+        return Producto.from_orm(self._orm.producto)
 
 
 @strawberry.type
@@ -146,7 +131,7 @@ class Pedido:
     @classmethod
     def from_orm(cls, obj: PedidoModel) -> "Pedido":
         fecha = obj.fecha
-        if isinstance(fecha, datetime):   # TIMESTAMP → ISO; si la columna es TEXT ya es str
+        if isinstance(fecha, datetime):
             fecha = fecha.isoformat()
         return cls(
             id=str(obj.id),
@@ -166,14 +151,21 @@ class Pedido:
 
 
 @strawberry.input
-class UsuarioInput:
-    nombre: str
+class ItemPedidoInput:
+    producto_id: strawberry.ID
+    cantidad: int
+    precio_unitario: float
+
+
+@strawberry.input
+class LoginInput:
     email: str
     password: str
 
 
 @strawberry.input
-class LoginInput:
+class UsuarioInput:
+    nombre: str
     email: str
     password: str
 
@@ -191,23 +183,14 @@ class RefreshPayload:
     refresh_token: str
 
 
-@strawberry.input
-class ItemPedidoInput:
-    producto_id: strawberry.ID
-    cantidad: int
-    precio_unitario: float
-
-
-# ─────────────────────────────────────────────────────────────
-# Query
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class Query:
     @strawberry.field
     async def categorias(self, info: strawberry.Info) -> list[Categoria]:
         result = await info.context["session"].execute(
-            select(CategoriaModel).order_by(CategoriaModel.id)
+            select(CategoriaModel)
+            .options(selectinload(CategoriaModel.productos))
+            .order_by(CategoriaModel.id)
         )
         return [Categoria.from_orm(c) for c in result.scalars().all()]
 
@@ -215,8 +198,10 @@ class Query:
     async def categoria(
         self, info: strawberry.Info, id: strawberry.ID
     ) -> Optional[Categoria]:
-        # session.get = lookup por PK (tu SELECT ... WHERE id = $1 en una llamada)
-        obj = await info.context["session"].get(CategoriaModel, int(id))
+        obj = await info.context["session"].get(
+            CategoriaModel, int(id),
+            options=[selectinload(CategoriaModel.productos)]
+        )
         return Categoria.from_orm(obj) if obj else None
 
     @strawberry.field
@@ -226,7 +211,6 @@ class Query:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> list[Producto]:
-        # limit(None)/offset(None) = sin cláusula → adiós al SQL armado con f-strings
         result = await info.context["session"].execute(
             select(ProductoModel).order_by(ProductoModel.id).limit(limit).offset(offset)
         )
@@ -239,140 +223,15 @@ class Query:
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
-        requerir_admin(info)   # solo un admin ve TODOS los pedidos
+        requerir_admin(info)
         result = await info.context["session"].execute(
             select(PedidoModel).order_by(PedidoModel.id)
         )
         return [Pedido.from_orm(p) for p in result.scalars().all()]
 
 
-# ─────────────────────────────────────────────────────────────
-# Mutation
-# ─────────────────────────────────────────────────────────────
-
 @strawberry.type
 class Mutation:
-    # ───────────────────────── Auth ─────────────────────────
-
-    @strawberry.mutation(name="crearUsuario")
-    async def crear_usuario(
-        self, info: strawberry.Info, datos: UsuarioInput
-    ) -> Optional[Usuario]:
-        session = info.context["session"]
-        try:
-            email = validate_email(datos.email, check_deliverability=True).normalized
-        except EmailNotValidError as e:
-            raise Exception(f"Correo inválido: {e}")
-
-        usuario = UsuarioModel(
-            nombre=datos.nombre,
-            email=email,
-            password=pwd_context.hash(datos.password),
-            rol="CLIENTE",   # el registro NUNCA crea admins
-        )
-        session.add(usuario)
-        try:
-            await session.commit()
-        except IntegrityError:   # UNIQUE(email)
-            await session.rollback()
-            raise Exception("Este correo ya se encuentra registrado")
-        return Usuario.from_orm(usuario)
-
-    @strawberry.mutation
-    async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
-        session = info.context["session"]
-        result = await session.execute(
-            select(UsuarioModel).where(UsuarioModel.email == datos.email.strip().lower())
-        )
-        usuario = result.scalar_one_or_none()
-
-        try:
-            valido = usuario is not None and pwd_context.verify(datos.password, usuario.password)
-        except UnknownHashError:   # password guardado en texto plano (datos viejos)
-            valido = False
-        if not valido:
-            raise Exception("Credenciales inválidas")
-
-        payload = {"usuario_id": usuario.id, "email": usuario.email, "rol": usuario.rol}
-        access_token = generar_access_token(payload)
-        refresh_token, jti = generar_refresh_token(payload)
-
-        session.add(RefreshTokenModel(
-            usuario_id=usuario.id,
-            jti=jti,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRACION_DIAS),
-        ))
-        await session.commit()
-        return AuthPayload(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            usuario=Usuario.from_orm(usuario),
-        )
-
-    @strawberry.mutation(name="refrescarToken")
-    async def refrescar_token(
-        self, info: strawberry.Info, refresh_token: str
-    ) -> RefreshPayload:
-        session = info.context["session"]
-        payload = decodificar_token(refresh_token)
-        if payload is None or payload.get("tipo") != "refresh":
-            raise Exception("Refresh Token Inválido")
-
-        jti, usuario_id = payload["jti"], payload["usuario_id"]
-        result = await session.execute(
-            select(RefreshTokenModel).where(RefreshTokenModel.jti == jti)
-        )
-        token_row = result.scalar_one_or_none()
-        if token_row is None:
-            raise Exception("Refresh Token Inválido")
-
-        if token_row.usado:
-            # Reuso → posible robo: se revocan TODAS las sesiones del usuario.
-            # El commit va ANTES del raise, si no el rollback deshace la revocación.
-            await session.execute(
-                update(RefreshTokenModel)
-                .where(RefreshTokenModel.usuario_id == usuario_id)
-                .values(usado=True)
-            )
-            await session.commit()
-            raise Exception("Refresh Token ya utilizado - Session Terminated")
-
-        token_row.usado = True   # rotación: un refresh solo sirve una vez
-
-        # Rol ACTUAL desde la BD, no el que traía el token viejo
-        usuario = await session.get(UsuarioModel, usuario_id)
-        if usuario is None:
-            await session.commit()
-            raise Exception("Refresh Token Inválido")
-
-        datos = {"usuario_id": usuario.id, "email": usuario.email, "rol": usuario.rol}
-        nuevo_access = generar_access_token(datos)
-        nuevo_refresh, nuevo_jti = generar_refresh_token(datos)
-        session.add(RefreshTokenModel(
-            usuario_id=usuario.id,
-            jti=nuevo_jti,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRACION_DIAS),
-        ))
-        await session.commit()
-        return RefreshPayload(access_token=nuevo_access, refresh_token=nuevo_refresh)
-
-    @strawberry.mutation
-    async def logout(self, info: strawberry.Info, refresh_token: str) -> bool:
-        session = info.context["session"]
-        payload = decodificar_token(refresh_token)
-        if payload is None or payload.get("tipo") != "refresh":
-            raise Exception("Refresh Token Inválido")
-
-        result = await session.execute(
-            select(RefreshTokenModel).where(RefreshTokenModel.jti == payload["jti"])
-        )
-        token_row = result.scalar_one_or_none()
-        if token_row is None:
-            raise Exception("Refresh Token Inválido")
-
-        token_row.usado = True
-        await session.commit()
-        return True
 
     @strawberry.mutation(name="crearProducto")
     async def crear_producto(
@@ -384,12 +243,11 @@ class Mutation:
         descripcion: Optional[str] = None,
         imagen: Optional[str] = None,
     ) -> Producto:
-        requerir_admin(info)
         session = info.context["session"]
 
         categoria = await session.get(CategoriaModel, int(categoria_id))
         if categoria is None:
-            raise Exception(f"No existe la categoría {categoria_id}")  # antes: FK violation crudo
+            raise Exception(f"No existe la categoría {categoria_id}")
 
         producto = ProductoModel(
             nombre=nombre,
@@ -397,10 +255,10 @@ class Mutation:
             precio=precio,
             imagen=imagen,
             stock=stock,
-            categoria=categoria,   # relación en memoria → el resolver categoria la lee sin query
+            categoria=categoria,
         )
         session.add(producto)
-        await session.commit()     # el flush interno asigna producto.id
+        await session.commit()
         return Producto.from_orm(producto)
 
     @strawberry.mutation(name="actualizarProducto")
@@ -410,14 +268,12 @@ class Mutation:
         precio: Optional[float] = None,
         stock: Optional[int] = None,
     ) -> Producto:
-        requerir_admin(info)
         session = info.context["session"]
 
         producto = await session.get(ProductoModel, int(id))
         if producto is None:
             raise Exception(f"No existe el producto {id}")
 
-        # Los if reemplazan al COALESCE del SQL: None = "no tocar este campo"
         if nombre is not None:
             producto.nombre = nombre
         if precio is not None:
@@ -430,51 +286,180 @@ class Mutation:
 
     @strawberry.mutation(name="eliminarProducto")
     async def eliminar_producto(self, info: strawberry.Info, id: strawberry.ID) -> bool:
-        requerir_admin(info)
         session = info.context["session"]
         producto = await session.get(ProductoModel, int(id))
         if producto is not None:
             await session.delete(producto)
             await session.commit()
         return True
-        # Ojo: si el producto tiene detalles de pedidos, el FK lo bloquea
-        # (igual que en la versión asyncpg). Decidir si el FK es ON DELETE
-        # RESTRICT / SET NULL es tema de db.sql, no de este código.
+
+    @strawberry.mutation
+    async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
+        session = info.context["session"]
+
+        result = await session.execute(
+            select(UsuarioModel).where(UsuarioModel.email == datos.email)
+        )
+        usuario = result.scalars().first()
+
+        if usuario is None:
+            raise Exception("Credenciales inválidas")
+
+        try:
+            password_ok = pwd_context.verify(datos.password, usuario.password)
+        except Exception:
+            password_ok = False
+
+        if not password_ok:
+            raise Exception("Credenciales inválidas")
+
+        payload_datos = {
+            "usuario_id": usuario.id,
+            "email": usuario.email,
+            "rol": usuario.rol,
+        }
+        access_token = generar_access_token(payload_datos)
+        refresh_token, jti = generar_refresh_token(payload_datos)
+
+        session.add(RefreshTokenModel(
+            usuario_id=usuario.id,
+            jti=uuid.UUID(jti),
+            usado=False,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        ))
+        await session.commit()
+
+        return AuthPayload(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            usuario=Usuario.from_orm(usuario),
+        )
+
+    @strawberry.mutation(name="crearUsuario")
+    async def crear_usuario(self, info: strawberry.Info, datos: UsuarioInput) -> Usuario:
+        session = info.context["session"]
+
+        try:
+            email_info = validate_email(datos.email, check_deliverability=True)
+            normalized_email = email_info.normalized
+        except EmailNotValidError as e:
+            raise Exception(f"Correo inválido: {e}")
+
+        result = await session.execute(
+            select(UsuarioModel).where(UsuarioModel.email == normalized_email)
+        )
+        if result.scalars().first() is not None:
+            raise Exception("Este correo ya se encuentra registrado")
+
+        usuario = UsuarioModel(
+            nombre=datos.nombre,
+            email=normalized_email,
+            password=pwd_context.hash(datos.password),
+        )
+        session.add(usuario)
+        await session.commit()
+        await session.refresh(usuario)
+
+        return Usuario.from_orm(usuario)
+
+    @strawberry.mutation(name="refrescarToken")
+    async def refrescar_token(self, info: strawberry.Info, refresh_token: str) -> RefreshPayload:
+        session = info.context["session"]
+
+        payload = decodificar_token(refresh_token)
+        if payload is None or payload.get("tipo") != "refresh":
+            raise Exception("Refresh Token Inválido")
+
+        jti = uuid.UUID(payload["jti"])
+        usuario_id = payload["usuario_id"]
+
+        result = await session.execute(
+            select(RefreshTokenModel).where(RefreshTokenModel.jti == jti)
+        )
+        row = result.scalars().first()
+        if row is None:
+            raise Exception("Refresh Token Inválido")
+
+        if row.usado:
+            await session.execute(
+                update(RefreshTokenModel)
+                .where(RefreshTokenModel.usuario_id == usuario_id)
+                .values(usado=True)
+            )
+            await session.commit()
+            raise Exception("Refresh Token ya utilizado - Sesión Terminada")
+
+        row.usado = True
+
+        usuario = await session.get(UsuarioModel, usuario_id)
+        if usuario is None:
+            raise Exception("Usuario no encontrado")
+
+        payload_datos = {
+            "usuario_id": usuario.id,
+            "email": usuario.email,
+            "rol": usuario.rol,
+        }
+        nuevo_access = generar_access_token(payload_datos)
+        nuevo_refresh, nuevo_jti = generar_refresh_token(payload_datos)
+
+        session.add(RefreshTokenModel(
+            usuario_id=usuario.id,
+            jti=uuid.UUID(nuevo_jti),
+            usado=False,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        ))
+        await session.commit()
+
+        return RefreshPayload(access_token=nuevo_access, refresh_token=nuevo_refresh)
+
+    @strawberry.mutation
+    async def logout(self, info: strawberry.Info, refresh_token: str) -> bool:
+        session = info.context["session"]
+
+        payload = decodificar_token(refresh_token)
+        if payload is None or payload.get("tipo") != "refresh":
+            raise Exception("Refresh Token Inválido")
+
+        result = await session.execute(
+            select(RefreshTokenModel).where(RefreshTokenModel.jti == uuid.UUID(payload["jti"]))
+        )
+        row = result.scalars().first()
+        if row is None:
+            raise Exception("Refresh Token Inválido")
+
+        row.usado = True
+        await session.commit()
+        return True
 
     @strawberry.mutation(name="registrarPedido")
     async def registrar_pedido(
         self, info: strawberry.Info, *,
+        usuario_id: strawberry.ID,
         total: float,
         items: list[ItemPedidoInput],
     ) -> Pedido:
-        # El usuario sale del TOKEN, no del cliente: nadie pide a nombre de otro.
-        # (Va ANTES de session.begin(): no toca la BD, así que no inicia transacción.)
-        auth = requerir_usuario(info)
         session = info.context["session"]
+
+        usuario_token = requerir_usuario(info)
 
         if not items:
             raise Exception("El pedido no tiene items")
 
-        # async with session.begin() ≡ tu BEGIN/COMMIT/ROLLBACK de asyncpg:
-        # sale sin excepción → COMMIT; con excepción → ROLLBACK automático y el
-        # error sube como error de GraphQL (stock restaurado, nada a medias)
         async with session.begin():
-            usuario = await session.get(UsuarioModel, int(auth["usuario_id"]))
+            usuario = await session.get(UsuarioModel, int(usuario_token["usuario_id"]))
             if usuario is None:
-                raise Exception("El usuario de la sesión ya no existe")
+                raise Exception(f"No existe el usuario {usuario_token['usuario_id']}")
 
             pedido = PedidoModel(
-                usuario=usuario,      # relación en memoria → resolver sin query extra
+                usuario=usuario,
                 total=total,
-                status="pendiente",
-                fecha=func.now(),    # la genera Postgres (funciona para TIMESTAMP o TEXT)
+                status="PENDIENTE",
+                fecha=func.now(),
             )
             session.add(pedido)
 
             for item in items:
-                # with_for_update bloquea la fila hasta el COMMIT: dos pedidos
-                # simultáneos del mismo producto ya no pueden pasar ambos el
-                # check de stock y dejarlo negativo (race condition clásica)
                 producto = await session.get(
                     ProductoModel, int(item.producto_id), with_for_update=True
                 )
@@ -486,17 +471,15 @@ class Mutation:
                         f"quedan {producto.stock}, se piden {item.cantidad}"
                     )
 
-                producto.stock -= item.cantidad   # se persiste en el COMMIT
+                producto.stock -= item.cantidad
 
-                detalle = DetallePedidoModel(
-                    pedido=pedido,       # ← se asigna aquí, no con .append() del lado contrario
+                session.add(DetallePedidoModel(
+                    pedido=pedido,
                     producto=producto,
                     cantidad=item.cantidad,
                     precio_unitario=item.precio_unitario,
-                )
-                session.add(detalle)
+                ))
 
-        # El COMMIT ya ocurrió; refresh trae la fecha que generó la BD
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)
 

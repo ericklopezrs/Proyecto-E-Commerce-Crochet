@@ -3,9 +3,10 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+import uuid as uuid_mod  # arriba del archivo, junto a los demás imports
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM, UUID as PG_UUID
 
 from database import Base
 
@@ -17,8 +18,6 @@ class CategoriaModel(Base):
     nombre: Mapped[str] = mapped_column(String(100))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
 
-    # Inversa (uno→muchos). "raise": si algo la accede sin cargarla, error claro.
-    # Se consulta explícitamente en su resolver (ver schema.py).
     productos: Mapped[list["ProductoModel"]] = relationship(
         back_populates="categoria", lazy="raise"
     )
@@ -30,7 +29,7 @@ class ProductoModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
-    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))  # ajusta precisión a tu db.sql
+    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))  
     imagen: Mapped[Optional[str]] = mapped_column(Text)
     stock: Mapped[int]
     categoria_id: Mapped[int] = mapped_column(ForeignKey("categorias.id"))
@@ -45,17 +44,16 @@ class UsuarioModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
-    password: Mapped[str] = mapped_column(String(255))  # hash Argon2, nunca texto plano
-    # ENUM nativo de Postgres (rol_usuario). create_type=False: ya existe en db.sql.
-    # Sigue entregando/recibiendo str ('CLIENTE' | 'ADMIN').
+    email: Mapped[str] = mapped_column(String(255))
+    password: Mapped[str] = mapped_column(String(255))
     rol: Mapped[str] = mapped_column(
-        Enum("CLIENTE", "ADMIN", name="rol_usuario", create_type=False)
-    )
+        PG_ENUM("CLIENTE", "ADMIN", name="rol_usuario", create_type=False),
+        server_default="CLIENTE",
+    )     
 
 
 class DetallePedidoModel(Base):
-    __tablename__ = "pedido_detalles"  # antes decía "detalles_pedido" # ⚠️ ÚNICO lugar donde vive el nombre — ajústalo a tu db.sql
+    __tablename__ = "pedido_detalles"  
 
     id: Mapped[int] = mapped_column(primary_key=True)
     pedido_id: Mapped[int] = mapped_column(ForeignKey("pedidos.id"))
@@ -80,16 +78,16 @@ class PedidoModel(Base):
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
         back_populates="pedido", lazy="selectin"
     )
-
+    
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
-    jti: Mapped[str] = mapped_column(UUID(as_uuid=False), unique=True)
-    usado: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
-    created_at: Mapped[datetime] = mapped_column(
+    jti: Mapped[uuid_mod.UUID] = mapped_column(PG_UUID(as_uuid=True), unique=True, index=True)
+    usado: Mapped[bool] = mapped_column(default=False)
+    creado_en: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

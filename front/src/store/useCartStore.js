@@ -1,5 +1,24 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { useAuthStore } from './useAuthStore.js';
+
+
+const idDelNavegante = () => useAuthStore.getState().usuario?.id ?? 'invitado';
+
+const carritoPorUsuario = {
+  getItem: (name) => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(`${name}-${idDelNavegante()}`);
+  },
+  setItem: (name, value) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(`${name}-${idDelNavegante()}`, value);
+  },
+  removeItem: (name) => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(`${name}-${idDelNavegante()}`);
+  },
+};
 
 export const useCartStore = create(
   persist(
@@ -34,6 +53,7 @@ export const useCartStore = create(
     }),
     {
       name: 'peluches-cart',
+      storage: createJSONStorage(() => carritoPorUsuario),
       partialize: (state) => ({ cart: state.cart }),
     }
   )

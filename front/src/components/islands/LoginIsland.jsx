@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Lock, LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { hacerLogin } from '../../services/auth.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
+import { useCartStore } from '../../store/useCartStore.js';
 
 export default function LoginIsland() {
   const [email, setEmail] = useState('');
@@ -10,25 +11,34 @@ export default function LoginIsland() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const setSesion = useAuthStore((s) => s.setSesion);
+  const access_token = useAuthStore((s) => s.access_token);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  useEffect(() => {
+    if (access_token) window.location.href = '/';
+  }, [access_token]);
 
-  if (!email.trim() || !password) { setError('Completa todos los campos.'); return; }
-  if (!email.includes('@')) { setError('Escribe un correo válido.'); return; }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  setError('');
-  setLoading(true);
+    if (!email.trim() || !password) { setError('Completa todos los campos.'); return; }
+    if (!email.includes('@')) { setError('Escribe un correo válido.'); return; }
 
-  try {
-    const resultado = await hacerLogin(email, password);
-    setSesion(resultado.access_token, resultado.refresh_token, resultado.usuario);
-    window.location.href = '/';
-  } catch (err) {
-    setError(err.message); 
-    setLoading(false);
-  }
-};
+    setError('');
+    setLoading(true);
+
+    try {
+      const resultado = await hacerLogin(email, password);
+
+      setSesion(resultado.access_token, resultado.refresh_token, resultado.usuario);
+
+      await useCartStore.persist.rehydrate();
+
+      window.location.href = '/';
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="main-container">

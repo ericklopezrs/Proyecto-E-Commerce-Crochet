@@ -9,7 +9,6 @@ export default function CheckoutIsland() {
   const { access_token, usuario } = useAuthStore();
   const [saving, setSaving] = useState(false);
 
-  // 🔒 EL GUARD — sin sesión, no hay checkout
   if (!access_token) {
     return (
       <div className="main-container">
@@ -50,6 +49,7 @@ export default function CheckoutIsland() {
       }));
 
       await registrarPedido({
+        usuarioId: usuario.id, 
         total: parseFloat(getTotal()),
         items,
       });

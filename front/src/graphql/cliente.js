@@ -1,4 +1,4 @@
-const GRAPHQL_URL = 'http://localhost:4000/graphql';
+const GRAPHQL_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
 
 export async function fetchGraphQL(query, variables = {}) {
   const response = await fetch(GRAPHQL_URL, {

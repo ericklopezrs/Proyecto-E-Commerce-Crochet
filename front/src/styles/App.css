@@ -393,7 +393,7 @@
   font-weight: 700;
   cursor: pointer;
   width: 100%;
-  box-sizing: border-box; /* ← también */
+  box-sizing: border-box;
 }
 
 .cart-box {
@@ -429,13 +429,12 @@
   color: #64748b;
 }
 
-/* Footer Mas Oscuro (ORIGINAL) */
 .footer {
   background-color: #baa2f3;
   border-bottom: 1px solid #baa2f3;
   padding: 20px 32px;
   text-align: center;
-  margin-top: 0; /* ANTES: 40px — dejaba un hueco gris */
+  margin-top: 0; 
 }
 
 .footer-text {
@@ -455,7 +454,6 @@
   text-decoration: underline;
 }
 
-/* --- SKELETON LOADER (ORIGINAL) --- */
 .skeleton-card {
   background: #fff;
   border-radius: 12px;
@@ -522,9 +520,9 @@
 }
 
 .search-input {
-  flex: 1;              /* ocupa todo el espacio disponible */
-  max-width: 500px;     /* pero no más de esto */
-  margin: 0 auto;       /* y se centra en ese espacio */
+  flex: 1;              
+  max-width: 500px;     
+  margin: 0 auto;      
   padding: 10px 16px;
   border: none;
   border-radius: 8px;
@@ -600,10 +598,9 @@
   transform: scale(1.05);
 }
 
-/* ====== BARRA DE CATEGORÍAS ====== */
 .category-bar {
   display: flex;
-  justify-content: center; /* ← AGREGAR */
+  justify-content: center; 
   gap: 8px;
   padding: 0 32px 12px 32px;
   overflow-x: auto;
@@ -616,11 +613,10 @@
   padding: 10px 32px;
   overflow-x: auto;
   background-color: #7951a6;
-  border-top: 1px solid #8b5cf6; /* línea morada */
+  border-top: 1px solid #8b5cf6; 
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Los chips cambian a estilo morado porque el fondo ya es blanco */
 .category-chip {
   background-color: #f5f3ff;
   border: 1px solid #ddd6fe;
@@ -730,7 +726,6 @@
   background-color: #7c3aed;
 }
 
-/* --- ANIMACIÓN DE APARICIÓN DE TARJETAS --- */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -746,7 +741,6 @@
   animation: fade-in-up 0.45s ease backwards;
 }
 
-/* Aparición escalonada: cada tarjeta entra un poquito después */
 .grid-productos .product-card:nth-child(1)  { animation-delay: 0.04s; }
 .grid-productos .product-card:nth-child(2)  { animation-delay: 0.10s; }
 .grid-productos .product-card:nth-child(3)  { animation-delay: 0.16s; }
@@ -780,7 +774,6 @@
   transform: scale(1.15);
 }
 
-/* ====== USUARIO EN EL HEADER ====== */
 .header-user {
   display: flex;
   align-items: center;
@@ -798,18 +791,38 @@
   background: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: #ffffff;
-  width: 36px;
-  height: 36px;
+  width: 42px;      /* ← mismo que el carrito */
+  height: 42px;     /* ← mismo que el carrito */
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 18px;  /* ← mismo que el carrito */
   transition: background-color 0.2s, transform 0.2s;
 }
 
 .header-logout-btn:hover {
   background-color: rgba(255, 255, 255, 0.45);
   transform: scale(1.05);
+}
+
+/* ====== BOTÓN LOGIN EN EL HEADER ====== */
+.header-login-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: #ffffff;
+  color: #611d74;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  margin-right: 12px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.header-login-btn:hover {
+  background-color: #f5f3ff;
+  transform: scale(1.03);
 }

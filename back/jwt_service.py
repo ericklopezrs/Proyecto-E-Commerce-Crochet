@@ -1,18 +1,12 @@
-# jwt_service.py
-import os
-import uuid
 from datetime import datetime, timedelta, timezone
-
+from jose import jwt, JWTError
+import os
 from dotenv import load_dotenv
-from jose import JWTError, jwt
+import uuid
 
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    # fail rápido: sin clave, los tokens serían firmados con None
-    raise RuntimeError("Falta SECRET_KEY en el .env")
-
 ALGORITHM = "HS256"
 REFRESH_EXPIRACION_DIAS = 7
 ACCESS_EXPIRACION_MIN = 30
@@ -36,6 +30,7 @@ def generar_refresh_token(payload: dict) -> tuple[str, str]:
 
 def decodificar_token(token: str) -> dict | None:
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
     except JWTError:
         return None
