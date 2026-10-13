@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1Jw573P6jAsY9pBbKnrc1G6pnXACFI1xtWGyLHQpozXLMl8cnwxSo5K7Knwzrht
+\restrict 0ZDFK34w8ld5xWZ8ciXcYFr1O807ngPBkoTYoAyG0OC8hM6z4Z1nPWkwM2fSiDp
 
 -- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -19,7 +19,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: rol_usuario; Type: TYPE; Schema: public; Owner: -
+-- Name: rol_usuario; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public.rol_usuario AS ENUM (
@@ -28,12 +28,14 @@ CREATE TYPE public.rol_usuario AS ENUM (
 );
 
 
+ALTER TYPE public.rol_usuario OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: categorias; Type: TABLE; Schema: public; Owner: -
+-- Name: categorias; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.categorias (
@@ -43,8 +45,10 @@ CREATE TABLE public.categorias (
 );
 
 
+ALTER TABLE public.categorias OWNER TO postgres;
+
 --
--- Name: categorias_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: categorias_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.categorias_id_seq
@@ -56,15 +60,17 @@ CREATE SEQUENCE public.categorias_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.categorias_id_seq OWNER TO postgres;
+
 --
--- Name: categorias_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: categorias_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.categorias_id_seq OWNED BY public.categorias.id;
 
 
 --
--- Name: pedido_detalles; Type: TABLE; Schema: public; Owner: -
+-- Name: pedido_detalles; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.pedido_detalles (
@@ -76,8 +82,10 @@ CREATE TABLE public.pedido_detalles (
 );
 
 
+ALTER TABLE public.pedido_detalles OWNER TO postgres;
+
 --
--- Name: pedido_detalles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: pedido_detalles_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.pedido_detalles_id_seq
@@ -89,15 +97,17 @@ CREATE SEQUENCE public.pedido_detalles_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.pedido_detalles_id_seq OWNER TO postgres;
+
 --
--- Name: pedido_detalles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: pedido_detalles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.pedido_detalles_id_seq OWNED BY public.pedido_detalles.id;
 
 
 --
--- Name: pedidos; Type: TABLE; Schema: public; Owner: -
+-- Name: pedidos; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.pedidos (
@@ -105,12 +115,19 @@ CREATE TABLE public.pedidos (
     usuario_id integer,
     fecha timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     total numeric(10,2) NOT NULL,
-    status character varying(50) DEFAULT 'PENDIENTE'::character varying
+    status character varying(50) DEFAULT 'PENDIENTE'::character varying NOT NULL,
+    mp_order_id character varying(64),
+    mp_checkout_url text,
+    fecha_pago timestamp with time zone,
+    expira_en timestamp with time zone,
+    CONSTRAINT pedidos_status_check CHECK (((status)::text = ANY ((ARRAY['PENDIENTE'::character varying, 'PAGADO'::character varying, 'RECHAZADO'::character varying, 'CANCELADO'::character varying])::text[])))
 );
 
 
+ALTER TABLE public.pedidos OWNER TO postgres;
+
 --
--- Name: pedidos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: pedidos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.pedidos_id_seq
@@ -122,15 +139,17 @@ CREATE SEQUENCE public.pedidos_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.pedidos_id_seq OWNER TO postgres;
+
 --
--- Name: pedidos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: pedidos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.pedidos_id_seq OWNED BY public.pedidos.id;
 
 
 --
--- Name: productos; Type: TABLE; Schema: public; Owner: -
+-- Name: productos; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.productos (
@@ -144,8 +163,10 @@ CREATE TABLE public.productos (
 );
 
 
+ALTER TABLE public.productos OWNER TO postgres;
+
 --
--- Name: productos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: productos_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.productos_id_seq
@@ -157,15 +178,55 @@ CREATE SEQUENCE public.productos_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.productos_id_seq OWNER TO postgres;
+
 --
--- Name: productos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: productos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.productos_id_seq OWNED BY public.productos.id;
 
 
 --
--- Name: usuarios; Type: TABLE; Schema: public; Owner: -
+-- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.refresh_tokens (
+    id integer NOT NULL,
+    usuario_id integer NOT NULL,
+    jti uuid NOT NULL,
+    usado boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL
+);
+
+
+ALTER TABLE public.refresh_tokens OWNER TO postgres;
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.refresh_tokens_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.refresh_tokens_id_seq OWNER TO postgres;
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.refresh_tokens_id_seq OWNED BY public.refresh_tokens.id;
+
+
+--
+-- Name: usuarios; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.usuarios (
@@ -178,8 +239,10 @@ CREATE TABLE public.usuarios (
 );
 
 
+ALTER TABLE public.usuarios OWNER TO postgres;
+
 --
--- Name: usuarios_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: usuarios_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
 CREATE SEQUENCE public.usuarios_id_seq
@@ -191,50 +254,59 @@ CREATE SEQUENCE public.usuarios_id_seq
     CACHE 1;
 
 
+ALTER SEQUENCE public.usuarios_id_seq OWNER TO postgres;
+
 --
--- Name: usuarios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: usuarios_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
 ALTER SEQUENCE public.usuarios_id_seq OWNED BY public.usuarios.id;
 
 
 --
--- Name: categorias id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: categorias id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.categorias ALTER COLUMN id SET DEFAULT nextval('public.categorias_id_seq'::regclass);
 
 
 --
--- Name: pedido_detalles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: pedido_detalles id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedido_detalles ALTER COLUMN id SET DEFAULT nextval('public.pedido_detalles_id_seq'::regclass);
 
 
 --
--- Name: pedidos id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: pedidos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedidos ALTER COLUMN id SET DEFAULT nextval('public.pedidos_id_seq'::regclass);
 
 
 --
--- Name: productos id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: productos id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.productos ALTER COLUMN id SET DEFAULT nextval('public.productos_id_seq'::regclass);
 
 
 --
--- Name: usuarios id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: refresh_tokens id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('public.refresh_tokens_id_seq'::regclass);
+
+
+--
+-- Name: usuarios id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.usuarios ALTER COLUMN id SET DEFAULT nextval('public.usuarios_id_seq'::regclass);
 
 
 --
--- Data for Name: categorias; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: categorias; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.categorias (id, nombre, descripcion) FROM stdin;
@@ -247,7 +319,7 @@ COPY public.categorias (id, nombre, descripcion) FROM stdin;
 
 
 --
--- Data for Name: pedido_detalles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: pedido_detalles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.pedido_detalles (id, pedido_id, producto_id, cantidad, precio_unitario) FROM stdin;
@@ -259,98 +331,101 @@ COPY public.pedido_detalles (id, pedido_id, producto_id, cantidad, precio_unitar
 6	6	1	1	280.00
 7	6	2	1	350.00
 8	7	1	3	280.00
-9	8	1	1	280.00
-10	9	1	3	280.00
-11	10	1	1	280.00
-12	11	1	3	280.00
-13	13	2	1	350.00
-14	15	1	1	280.00
 \.
 
 
 --
--- Data for Name: pedidos; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: pedidos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.pedidos (id, usuario_id, fecha, total, status) FROM stdin;
-1	1	2026-09-12 17:53:18.431557-06	420.00	PENDIENTE
-2	1	2026-09-12 17:57:33.002997-06	420.00	PENDIENTE
-3	1	2026-09-12 17:58:24.372087-06	450.00	PENDIENTE
-4	1	2026-09-12 17:59:08.499535-06	300.00	PENDIENTE
-5	1	2026-09-12 17:59:36.649162-06	380.00	PENDIENTE
-6	1	2026-09-12 18:00:43.712759-06	630.00	PENDIENTE
-7	1	2026-09-12 19:54:05.410881-06	840.00	PENDIENTE
-8	1	2026-09-12 21:51:12.355184-06	280.00	PENDIENTE
-9	1	2026-09-12 22:06:30.144521-06	840.00	PENDIENTE
-10	1	2026-09-12 22:07:13.878335-06	280.00	PENDIENTE
-11	1	2026-09-12 22:09:10.386032-06	840.00	PENDIENTE
-13	1	2026-09-19 23:27:06.262014-06	350.00	pendiente
-15	1	2026-09-19 23:31:20.367613-06	280.00	pendiente
+COPY public.pedidos (id, usuario_id, fecha, total, status, mp_order_id, mp_checkout_url, fecha_pago, expira_en) FROM stdin;
+1	1	2026-09-12 23:53:18.431557+00	420.00	PENDIENTE	\N	\N	\N	\N
+2	1	2026-09-12 23:57:33.002997+00	420.00	PENDIENTE	\N	\N	\N	\N
+3	1	2026-09-12 23:58:24.372087+00	450.00	PENDIENTE	\N	\N	\N	\N
+4	1	2026-09-12 23:59:08.499535+00	300.00	PENDIENTE	\N	\N	\N	\N
+5	1	2026-09-12 23:59:36.649162+00	380.00	PENDIENTE	\N	\N	\N	\N
+6	1	2026-09-13 00:00:43.712759+00	630.00	PENDIENTE	\N	\N	\N	\N
+7	1	2026-09-13 01:54:05.410881+00	840.00	PENDIENTE	\N	\N	\N	\N
 \.
 
 
 --
--- Data for Name: productos; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: productos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.productos (id, nombre, descripcion, precio, imagen, stock, categoria_id) FROM stdin;
+1	Gato Crochet	Gatito miniatura tejido a mano con ojos de seguridad y estambre afelpado	280.00	http://localhost:4000/uploads/gato_crochet.jpg	10	1
 4	Spiderman Crochet	El Hombre Araña tejido a crochet de 20 cm con traje detallado	420.00	http://localhost:4000/uploads/spiderman_crochet.jpg	6	2
 5	Baby Groot Crochet	Pequeño Groot en su maceta tejido a mano	300.00	http://localhost:4000/uploads/baby_groot_crochet.jpg	12	2
 6	Batman Crochet	El Caballero de la Noche en versión tierna tejido a crochet	450.00	http://localhost:4000/uploads/batman_crochet.jpg	5	3
+2	Perro Corgi Crochet	Corgi de peluche tejido a ganchillo con detalle de bufanda	350.00	http://localhost:4000/uploads/perro_corgi_crochet.jpg	8	1
 8	Pikachu Crochet	Pikachu afelpado tejido a mano con sus mejillas rojas características	390.00	http://localhost:4000/uploads/pikachu_crochet.jpeg	9	5
 7	Snoopy Crochet	Clásico Snoopy de peluche tejido en estambre blanco y negro	380.00	http://localhost:4000/uploads/snoopy_crochet.jpeg	7	4
 3	Pollo Sonajero Crochet	Pollito tejido con hilaza de algodón, suave y seguro para bebés	220.00	http://localhost:4000/uploads/pollo_sonajero.jpg	15	1
-2	Perro Corgi Crochet	Corgi de peluche tejido a ganchillo con detalle de bufanda	350.00	http://localhost:4000/uploads/perro_corgi_crochet.jpg	7	1
-1	Gato Crochet	Gatito miniatura tejido a mano con ojos de seguridad y estambre afelpado	280.00	http://localhost:4000/uploads/gato_crochet.jpg	6	1
 \.
 
 
 --
--- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.refresh_tokens (id, usuario_id, jti, usado, created_at, expires_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.usuarios (id, nombre, email, password, rol, creado_en) FROM stdin;
-1	Erick López	erick@cetis.edu.mx	password123	CLIENTE	2026-09-12 17:27:52.544834-06
+1	Erick López	erick@cetis.edu.mx	$argon2id$v=19$m=65536,t=3,p=4$8n6PkfJeC6EUwrjX2lsLYQ$TberdRJShe8yjqhNBQxGIxj5l9NRgJuckSUF0935zRk	CLIENTE	2026-09-12 23:27:52.544834+00
 \.
 
 
 --
--- Name: categorias_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: categorias_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
 SELECT pg_catalog.setval('public.categorias_id_seq', 1, false);
 
 
 --
--- Name: pedido_detalles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: pedido_detalles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pedido_detalles_id_seq', 14, true);
-
-
---
--- Name: pedidos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('public.pedidos_id_seq', 15, true);
+SELECT pg_catalog.setval('public.pedido_detalles_id_seq', 8, true);
 
 
 --
--- Name: productos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: pedidos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.productos_id_seq', 9, true);
+SELECT pg_catalog.setval('public.pedidos_id_seq', 7, true);
 
 
 --
--- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: productos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.productos_id_seq', 8, true);
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.refresh_tokens_id_seq', 1, false);
+
+
+--
+-- Name: usuarios_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
 SELECT pg_catalog.setval('public.usuarios_id_seq', 1, true);
 
 
 --
--- Name: categorias categorias_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: categorias categorias_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.categorias
@@ -358,7 +433,7 @@ ALTER TABLE ONLY public.categorias
 
 
 --
--- Name: pedido_detalles pedido_detalles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pedido_detalles pedido_detalles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedido_detalles
@@ -366,7 +441,7 @@ ALTER TABLE ONLY public.pedido_detalles
 
 
 --
--- Name: pedidos pedidos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: pedidos pedidos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedidos
@@ -374,7 +449,7 @@ ALTER TABLE ONLY public.pedidos
 
 
 --
--- Name: productos productos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: productos productos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.productos
@@ -382,7 +457,23 @@ ALTER TABLE ONLY public.productos
 
 
 --
--- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: refresh_tokens refresh_tokens_jti_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_jti_key UNIQUE (jti);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.usuarios
@@ -390,7 +481,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.usuarios
@@ -398,7 +489,28 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
--- Name: pedido_detalles fk_detalle_pedido; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: idx_pedidos_pendientes_expiran; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_pedidos_pendientes_expiran ON public.pedidos USING btree (expira_en) WHERE (((status)::text = 'PENDIENTE'::text) AND (expira_en IS NOT NULL));
+
+
+--
+-- Name: idx_refresh_tokens_usuario; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_refresh_tokens_usuario ON public.refresh_tokens USING btree (usuario_id);
+
+
+--
+-- Name: pedidos_mp_order_id_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX pedidos_mp_order_id_key ON public.pedidos USING btree (mp_order_id);
+
+
+--
+-- Name: pedido_detalles fk_detalle_pedido; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedido_detalles
@@ -406,7 +518,7 @@ ALTER TABLE ONLY public.pedido_detalles
 
 
 --
--- Name: pedido_detalles fk_detalle_producto; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: pedido_detalles fk_detalle_producto; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedido_detalles
@@ -414,7 +526,7 @@ ALTER TABLE ONLY public.pedido_detalles
 
 
 --
--- Name: pedidos fk_pedido_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: pedidos fk_pedido_usuario; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.pedidos
@@ -422,7 +534,7 @@ ALTER TABLE ONLY public.pedidos
 
 
 --
--- Name: productos fk_producto_categoria; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: productos fk_producto_categoria; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.productos
@@ -430,8 +542,16 @@ ALTER TABLE ONLY public.productos
 
 
 --
+-- Name: refresh_tokens refresh_tokens_usuario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1Jw573P6jAsY9pBbKnrc1G6pnXACFI1xtWGyLHQpozXLMl8cnwxSo5K7Knwzrht
+\unrestrict 0ZDFK34w8ld5xWZ8ciXcYFr1O807ngPBkoTYoAyG0OC8hM6z4Z1nPWkwM2fSiDp
 
