@@ -4,6 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import selectinload
 
+from decimal import Decimal
+from mercadopago_client import crear_orden
+
 import strawberry
 from email_validator import EmailNotValidError, validate_email
 from passlib.context import CryptContext
@@ -176,6 +179,10 @@ class AuthPayload:
     refresh_token: str
     usuario: Usuario
 
+@strawberry.type
+class PagoPayload:
+    checkout_url: str
+    orden_id: str
 
 @strawberry.type
 class RefreshPayload:
@@ -185,6 +192,17 @@ class RefreshPayload:
 
 @strawberry.type
 class Query:
+    @strawberry.field(name="miPedido")
+    async def mi_pedido(
+        self, info: strawberry.Info, id: strawberry.ID
+    ) -> Optional[Pedido]:
+        usuario_token = requerir_usuario(info)
+        obj = await info.context["session"].get(PedidoModel, int(id))
+        if obj is None or obj.usuario_id != int(usuario_token["usuario_id"]):
+            return None
+        return Pedido.from_orm(obj)
+
+
     @strawberry.field
     async def categorias(self, info: strawberry.Info) -> list[Categoria]:
         result = await info.context["session"].execute(
@@ -232,6 +250,30 @@ class Query:
 
 @strawberry.type
 class Mutation:
+
+    @strawberry.mutation(name="iniciarPago")
+    async def iniciar_pago(
+        self, info: strawberry.Info, *, pedido_id: strawberry.ID
+    ) -> PagoPayload:
+        session = info.context["session"]
+        usuario_token = requerir_usuario(info)
+
+        pedido = await session.get(PedidoModel, int(pedido_id))
+        if pedido is None or pedido.usuario_id != int(usuario_token["usuario_id"]):
+            raise Exception("Pedido no encontrado")
+        if pedido.status != "PENDIENTE":
+            raise Exception("Este pedido ya no está pendiente de pago")
+
+        items = [
+            {
+                "titulo": d.producto.nombre,
+                "cantidad": d.cantidad,
+                "precio": d.precio_unitario,
+            }
+            for d in pedido.detalles
+        ]
+        orden = await crear_orden(pedido.id, items)
+        return PagoPayload(checkout_url=orden["checkout_url"], orden_id=orden["id"])
 
     @strawberry.mutation(name="crearProducto")
     async def crear_producto(
@@ -439,46 +481,34 @@ class Mutation:
         total: float,
         items: list[ItemPedidoInput],
     ) -> Pedido:
-        session = info.context["session"]
-
-        usuario_token = requerir_usuario(info)
-
-        if not items:
-            raise Exception("El pedido no tiene items")
-
-        async with session.begin():
-            usuario = await session.get(UsuarioModel, int(usuario_token["usuario_id"]))
-            if usuario is None:
-                raise Exception(f"No existe el usuario {usuario_token['usuario_id']}")
-
-            pedido = PedidoModel(
-                usuario=usuario,
-                total=total,
-                status="PENDIENTE",
-                fecha=func.now(),
+        pedido = PedidoModel(
+            usuario=usuario,
+            total=0,
+            status="PENDIENTE",
+            fecha=func.now(),
+        )
+        session.add(pedido)
+        total_servidor = Decimal("0")
+        for item in items:
+            producto = await session.get(
+                ProductoModel, int(item.producto_id), with_for_update=True
             )
-            session.add(pedido)
-
-            for item in items:
-                producto = await session.get(
-                    ProductoModel, int(item.producto_id), with_for_update=True
+            if producto is None:
+                raise Exception(f"No existe el producto {item.producto_id}")
+            if producto.stock < item.cantidad:
+                raise Exception(
+                    f"Stock insuficiente de '{producto.nombre}': "
+                    f"quedan {producto.stock}, se piden {item.cantidad}"
                 )
-                if producto is None:
-                    raise Exception(f"No existe el producto {item.producto_id}")
-                if producto.stock < item.cantidad:
-                    raise Exception(
-                        f"Stock insuficiente de '{producto.nombre}': "
-                        f"quedan {producto.stock}, se piden {item.cantidad}"
-                    )
-
-                producto.stock -= item.cantidad
-
-                session.add(DetallePedidoModel(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=item.cantidad,
-                    precio_unitario=item.precio_unitario,
-                ))
+            producto.stock -= item.cantidad
+            total_servidor += producto.precio * item.cantidad
+            session.add(DetallePedidoModel(
+                pedido=pedido,
+                producto=producto,
+                cantidad=item.cantidad,
+                precio_unitario=producto.precio,
+            ))
+        pedido.total = total_servidor
 
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)
