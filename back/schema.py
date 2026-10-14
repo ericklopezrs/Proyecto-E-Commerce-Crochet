@@ -481,6 +481,9 @@ class Mutation:
         total: float,
         items: list[ItemPedidoInput],
     ) -> Pedido:
+        session = info.context["session"]
+        usuario = requerir_usuario(info)
+
         pedido = PedidoModel(
             usuario=usuario,
             total=0,
@@ -488,6 +491,8 @@ class Mutation:
             fecha=func.now(),
         )
         session.add(pedido)
+        await session.flush()   # <- NUEVO: asegura que el pedido ya tenga id
+
         total_servidor = Decimal("0")
         for item in items:
             producto = await session.get(
@@ -508,7 +513,10 @@ class Mutation:
                 cantidad=item.cantidad,
                 precio_unitario=producto.precio,
             ))
+
+
         pedido.total = total_servidor
+        await session.flush()   # <- NUEVO: guarda total y detalles antes del refresh
 
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)
