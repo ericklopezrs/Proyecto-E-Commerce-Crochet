@@ -38,8 +38,6 @@ async def crear_orden(pedido_id: int, items: list[dict]) -> dict:
             "title": item["titulo"],
             "unit_price": _monto(precio),
             "quantity": item["cantidad"],
-            "unit_measure": "unit",
-            "total_amount": _monto(subtotal),
         })
 
     url_retorno = f"{frontend}/checkout/resultado"
