@@ -4,7 +4,7 @@ import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
 import { iniciarPago } from '../../services/pedidos.js';
-import { registrarPedido } from '../../services/pedidos.js';
+
 
 export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();

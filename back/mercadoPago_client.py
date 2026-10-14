@@ -44,7 +44,7 @@ async def crear_orden(pedido_id: int, items: list[dict]) -> dict:
 
     url_retorno = f"{frontend}/checkout/resultado"
     config_online = {
-        "succesful_url": url_retorno,
+        "success_url": url_retorno,
         "pending_url": url_retorno,
         "failure_url": url_retorno,
     }
@@ -131,7 +131,7 @@ def validar_firma(x_signature: str, x_request_id: str, data_id: str) -> bool:
     if data_id:
         segmentos.append(f"id:{data_id.lower()}")
     if x_request_id:
-        segmentos.append(f"request_id:{x_request_id}")
+        segmentos.append(f"request-id:{x_request_id}")
     segmentos.append(f"ts:{ts}")
     manifiesto = ";".join(segmentos) + ";"
     firma_calculada = hmac.new(

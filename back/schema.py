@@ -485,13 +485,13 @@ class Mutation:
         usuario = requerir_usuario(info)
 
         pedido = PedidoModel(
-            usuario=usuario,
+            usuario_id=int(usuario["usuario_id"]),
             total=0,
             status="PENDIENTE",
             fecha=func.now(),
         )
         session.add(pedido)
-        await session.flush()   # <- NUEVO: asegura que el pedido ya tenga id
+        await session.flush()   #  asegura que el pedido ya tenga id
 
         total_servidor = Decimal("0")
         for item in items:
@@ -516,7 +516,7 @@ class Mutation:
 
 
         pedido.total = total_servidor
-        await session.flush()   # <- NUEVO: guarda total y detalles antes del refresh
+        await session.commit()
 
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)
