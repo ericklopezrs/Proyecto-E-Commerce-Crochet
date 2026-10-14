@@ -3,6 +3,8 @@ import { Lock } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
+import { iniciarPago } from '../../services/pedidos.js';
+import { registrarPedido } from '../../services/pedidos.js';
 
 export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();
@@ -48,18 +50,16 @@ export default function CheckoutIsland() {
         precio_unitario: parseFloat(item.producto.precio),
       }));
 
-      await registrarPedido({
-        usuarioId: usuario.id, 
+      const { registrarPedido: pedido } = await registrarPedido({
+        usuarioId: usuario.id,
         total: parseFloat(getTotal()),
         items,
       });
 
-      alert('¡Pedido guardado exitosamente!');
-      clearCart();
-      window.location.href = '/';
+      const { checkout_url } = await iniciarPago(pedido.id);
+      window.location.href = checkout_url;
     } catch (err) {
-      alert('Error al registrar pedido: ' + err.message);
-    } finally {
+      alert('Error al iniciar el pago: ' + err.message);
       setSaving(false);
     }
   };
@@ -106,8 +106,8 @@ export default function CheckoutIsland() {
             </div>
 
             <button className="success-btn" onClick={handleConfirm} disabled={saving}>
-              <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>
-              {saving ? 'Guardando...' : 'Confirmar y Guardar en BD'}
+              <i className="fa-solid fa-credit-card" style={{ marginRight: '8px' }}></i>
+              {saving ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago'}
             </button>
           </div>
         </div>
