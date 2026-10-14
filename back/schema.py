@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import selectinload
 
 from decimal import Decimal
-from mercadopago_client import crear_orden
+from mercadoPago_client import crear_orden
 
 import strawberry
 from email_validator import EmailNotValidError, validate_email
