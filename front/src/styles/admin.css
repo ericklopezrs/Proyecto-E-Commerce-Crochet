@@ -1,0 +1,98 @@
+/* ====== Panel de administración ====== */
+.admin-content { max-width: 1000px; }
+
+.admin-aviso {
+  margin: -8px 0 20px 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* Tarjetas de números */
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-kpi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.admin-kpi-icono {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #f5f3ff;
+  color: #8b5cf6;
+  font-size: 18px;
+}
+
+.admin-kpi-valor { font-size: 22px; font-weight: 800; color: #0f172a; }
+.admin-kpi-etiqueta { font-size: 12px; color: #64748b; }
+
+.admin-kpi-cambio {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+/* Gráficas */
+.admin-graficas {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.admin-grafica-ancha { grid-column: 1 / -1; }
+.admin-grafica-titulo { margin: 0 0 12px 0; color: #64748b; }
+.admin-grafica { width: 100%; height: auto; }
+.admin-grafica-texto { font-size: 10px; fill: #64748b; }
+
+/* Dona + leyenda */
+.admin-dona-contenedor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.admin-dona { width: 180px; height: 180px; }
+
+.admin-leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.admin-leyenda-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+}
+
+/* En pantallas chicas, una gráfica por fila */
+@media (max-width: 700px) {
+  .admin-graficas { grid-template-columns: 1fr; }
+}
