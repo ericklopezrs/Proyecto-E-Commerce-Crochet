@@ -3,6 +3,7 @@ import { Lock, CircleCheck, CircleAlert, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
+import { showToast, showToastAfterRedirect } from '../../utils/toast.js';
 
 export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();
@@ -114,14 +115,26 @@ export default function CheckoutIsland() {
 
       await registrarPedido({
         usuarioId: usuario.id,
+<<<<<<< HEAD
         total,
         items,
       });
 
+=======
+        total: parseFloat(getTotal()),
+        items,
+      });
+
+      showToastAfterRedirect('¡Pedido guardado exitosamente!', 'success');
+>>>>>>> origin/main
       clearCart();
       setPedidoListo({ total });
     } catch (err) {
+<<<<<<< HEAD
       setErrorPedido(`No se pudo registrar tu pedido: ${err.message}`);
+=======
+      showToast('Error al registrar pedido: ' + err.message, 'error', 5000);
+>>>>>>> origin/main
     } finally {
       setSaving(false);
     }
@@ -184,8 +197,7 @@ export default function CheckoutIsland() {
             )}
 
             <button className="success-btn" onClick={handleConfirm} disabled={saving}>
-              <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>
-              {saving ? 'Guardando...' : 'Confirmar y Guardar en BD'}
+              {saving ? 'Procesando pago...' : 'Comprar'}
             </button>
           </div>
         </div>
