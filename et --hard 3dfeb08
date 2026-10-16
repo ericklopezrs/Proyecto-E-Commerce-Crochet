@@ -1,0 +1,49 @@
+[33m7e921d4[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32merick-branch[m[33m, [m[1;31morigin/erick-branch[m[33m)[m Merge rex-branch en erick-branch
+[33m3dfeb08[m tilin
+[33mef6c1b1[m Merge remote-tracking branch 'origin/main' into erick-branch
+[33m92f9e20[m Arreglo de la rama
+[33m1f6f6cd[m[33m ([m[1;31morigin/main-backup[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain-backup[m[33m, [m[1;32mmain[m[33m)[m fix pequeno
+[33m8d1b530[m Arreglo de alerts 2
+[33m9e7127a[m Arreglo de alerts
+[33m2d80875[m Merge remote-tracking branch 'origin/fernando-branch' into erick-branch
+[33m7d6520c[m[33m ([m[1;31morigin/rex-branch[m[33m)[m admin dashboard hecho sin readmes
+[33m5d7dfcf[m MERCADO PAGO COMPLETADO
+[33m5d28430[m ayuda chat chat ayuden chat
+[33m15731b3[m kys
+[33mb28a36c[m retoques finales para las pruebas
+[33m73e9196[m arreglado los errores que tenia, eso si agregue una nueva carpeta de .vscode porque la necesitaba yo, entonces cambia su ruta de venv ahi ;P
+[33m266747f[m requirements
+[33mc325a7c[m frontend, pero aun falta arreglar todos los benditos problemas que hay
+[33m6fef74d[m main py cambiado para tener la ruta de mercado pago web hooks
+[33m2a99255[m primera tanda cambiando las mutations y agregando los metodos de mercado pago en el backend
+[33mcdf8a5b[m cambio de la bdd erick mamon
+[33ma2132c8[m Merge remote-tracking branch 'origin/fernando-branch' into rex-branch
+[33m97fd514[m Merge branch 'main' into rex-branch
+[33m6bd37de[m[33m ([m[1;31morigin/fernando-branch[m[33m, [m[1;32mfernando-branch[m[33m)[m Carrito con implementación de imagen y estilos
+[33m6f51dc2[m Agregar .gitignore y dejar de rastrear pycache
+[33m148be15[m[33m ([m[1;33mtag: [m[1;33mrespaldo-main-antes-merge[m[33m)[m netlify
+[33m0ddced9[m Adaptador Netlify y URL del backend por variable de entorno
+[33mf9a32b8[m Fix otra vez de requierements
+[33me8205eb[m fix de requierements
+[33m4572568[m Merge branch 'main' into fernando-branch
+[33m41521d3[m Revise README for installation and local server steps
+[33m8169f4a[m Merge branch 'erick-branch'
+[33m1a535ec[m PP1 parte 1 complet corregidoo
+[33me220ce6[m PP1 parte 1 completo
+[33mcf3cb5d[m commit de auth que probablemente no funcione
+[33m1e2fb9e[m COPIANDO TODO DE ERICK A LA VEG excepto venv
+[33m56e9cb5[m prueba rexy
+[33mc6ca0b7[m Implementacion del login con logica del back
+[33m323b17f[m Integracion de Astro al proyecto
+[33mefd35b9[m Merge branch 'erick-branch'
+[33m79d77a3[m Fix del README
+[33m8968fbc[m Commit de migracion a Python
+[33m00b0e94[m Carrito con formato agregar, eliminar e imagen
+[33me546f9a[m Update README.md
+[33m2abce48[m Fix formatting and add image references in README
+[33mbf32118[m Fix typo in README title
+[33mbaf4278[m Arreglo de README
+[33m7578230[m ReadME
+[33mf76d663[m Segundo Commit
+[33m3919c41[m Commit de seguridad
+[33m333ae7e[m Primer Commit
