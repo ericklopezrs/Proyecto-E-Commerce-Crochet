@@ -47,13 +47,8 @@ export default function RegistroIsland() {
 
   try {
     await registrarUsuario(nombre, email, password);
-<<<<<<< HEAD
-    setLoading(false);
-    setCuentaCreada(true);
-=======
     showToastAfterRedirect('¡Cuenta creada! Ahora inicia sesión 🧸', 'success');
     window.location.href = '/login';
->>>>>>> origin/main
   } catch (err) {
     setError(err.message);
     setLoading(false);

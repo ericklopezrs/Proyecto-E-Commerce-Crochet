@@ -115,26 +115,15 @@ export default function CheckoutIsland() {
 
       await registrarPedido({
         usuarioId: usuario.id,
-<<<<<<< HEAD
-        total,
-        items,
-      });
-
-=======
         total: parseFloat(getTotal()),
         items,
       });
 
       showToastAfterRedirect('¡Pedido guardado exitosamente!', 'success');
->>>>>>> origin/main
       clearCart();
       setPedidoListo({ total });
     } catch (err) {
-<<<<<<< HEAD
-      setErrorPedido(`No se pudo registrar tu pedido: ${err.message}`);
-=======
       showToast('Error al registrar pedido: ' + err.message, 'error', 5000);
->>>>>>> origin/main
     } finally {
       setSaving(false);
     }
