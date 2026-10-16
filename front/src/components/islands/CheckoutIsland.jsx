@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, CircleCheck, CircleAlert, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
@@ -8,6 +8,9 @@ export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();
   const { access_token, usuario } = useAuthStore();
   const [saving, setSaving] = useState(false);
+
+  const [errorPedido, setErrorPedido] = useState('');
+  const [pedidoListo, setPedidoListo] = useState(null);
 
   if (!access_token) {
     return (
@@ -39,8 +42,67 @@ export default function CheckoutIsland() {
     );
   }
 
+  if (pedidoListo) {
+    return (
+      <div className="main-container">
+        <main className="content">
+          <div className="checkout-exito">
+            <span className="checkout-exito-icono">
+              <CircleCheck size={36} />
+            </span>
+            <h3>¡Pedido realizado!</h3>
+            <p>
+              Guardamos tu pedido por <strong>${pedidoListo.total} MXN</strong>. ¡Gracias por tu
+              compra!
+            </p>
+            <a
+              href="/"
+              className="primary-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                textDecoration: 'none',
+              }}
+            >
+              <ShoppingBag size={16} />
+              Seguir comprando
+            </a>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (cart.length === 0) {
+    return (
+      <div className="main-container">
+        <main className="content">
+          <div className="empty-cart" style={{ maxWidth: '480px', margin: '0 auto' }}>
+            <i
+              className="fa-solid fa-cart-flatbed"
+              style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}
+            ></i>
+            Tu carrito está vacío.
+            <div style={{ marginTop: '16px' }}>
+              <a
+                href="/"
+                className="primary-btn"
+                style={{ display: 'inline-block', width: 'auto', textDecoration: 'none' }}
+              >
+                Ver productos
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const handleConfirm = async () => {
     setSaving(true);
+    setErrorPedido('');
     try {
       const items = cart.map((item) => ({
         producto_id: String(item.producto.id),
@@ -48,17 +110,18 @@ export default function CheckoutIsland() {
         precio_unitario: parseFloat(item.producto.precio),
       }));
 
+      const total = parseFloat(getTotal());
+
       await registrarPedido({
-        usuarioId: usuario.id, 
-        total: parseFloat(getTotal()),
+        usuarioId: usuario.id,
+        total,
         items,
       });
 
-      alert('¡Pedido guardado exitosamente!');
       clearCart();
-      window.location.href = '/';
+      setPedidoListo({ total });
     } catch (err) {
-      alert('Error al registrar pedido: ' + err.message);
+      setErrorPedido(`No se pudo registrar tu pedido: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -86,12 +149,20 @@ export default function CheckoutIsland() {
                 key={item.producto.id}
                 style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '10px',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '12px',
                   fontSize: '14px',
                 }}
               >
-                <span>{item.producto.nombre} (x{item.cantidad})</span>
+                <img
+                  src={item.producto.imagen}
+                  alt={item.producto.nombre}
+                  className="ml-thumb ml-thumb-sm"
+                />
+                <span style={{ flex: 1 }}>
+                  {item.producto.nombre} (x{item.cantidad})
+                </span>
                 <span style={{ fontWeight: 'bold' }}>
                   ${item.producto.precio * item.cantidad} MXN
                 </span>
@@ -104,6 +175,13 @@ export default function CheckoutIsland() {
               <span>Total a Pagar:</span>
               <span style={{ fontSize: '22px' }}>${getTotal()} MXN</span>
             </div>
+
+            {errorPedido && (
+              <div className="checkout-error" role="alert">
+                <CircleAlert size={16} />
+                <span>{errorPedido}</span>
+              </div>
+            )}
 
             <button className="success-btn" onClick={handleConfirm} disabled={saving}>
               <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>

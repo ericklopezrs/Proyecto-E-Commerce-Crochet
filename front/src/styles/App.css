@@ -1079,3 +1079,76 @@
     text-align: right;
   }
 }
+/* ===== Avisos del pedido (reemplazan a los alert) — pegar al FINAL de App.css ===== */
+
+/* Mensaje rojo cuando no se pudo guardar el pedido */
+.checkout-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 0 16px 0;
+}
+
+.checkout-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Pantalla de "Pedido realizado" */
+.checkout-exito {
+  max-width: 480px;
+  margin: 40px auto 0;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 32px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: checkout-aparece 0.25s ease-out;
+}
+
+.checkout-exito-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.checkout-exito h3 {
+  margin: 4px 0 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.checkout-exito p {
+  margin: 0 0 8px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@keyframes checkout-aparece {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
