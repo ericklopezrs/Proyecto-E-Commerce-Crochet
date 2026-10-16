@@ -70,9 +70,13 @@ class PedidoModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     usuario_id: Mapped[Optional[int]] = mapped_column(ForeignKey("usuarios.id"))
-    fecha: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    status: Mapped[str] = mapped_column(String(20))
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    status: Mapped[str] = mapped_column(String(50), server_default="PENDIENTE")
+    mp_order_id: Mapped[Optional[str]] = mapped_column(String(64))
+    mp_checkout_url: Mapped[Optional[str]] = mapped_column(Text)
+    fecha_pago: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    expira_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     usuario: Mapped[Optional["UsuarioModel"]] = relationship(lazy="selectin")
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
