@@ -120,8 +120,7 @@ class DetallePedido:
 
     @strawberry.field
     def producto(self) -> "Producto":
-        return Producto.from_orm(self._orm.producto)
-
+        return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
 @strawberry.type
 class Pedido:
@@ -151,6 +150,7 @@ class Pedido:
     @strawberry.field
     def detalles(self) -> list["DetallePedido"]:
         return [DetallePedido.from_orm(d) for d in self._orm.detalles]
+        
 
 
 @strawberry.input
@@ -201,6 +201,16 @@ class Query:
         if obj is None or obj.usuario_id != int(usuario_token["usuario_id"]):
             return None
         return Pedido.from_orm(obj)
+
+    @strawberry.field(name="misPedidos")
+    async def mis_pedidos(self, info: strawberry.Info) -> list[Pedido]:
+        usuario_token = requerir_usuario(info)
+        result = await info.context["session"].execute(
+            select(PedidoModel)
+            .where(PedidoModel.usuario_id == int(usuario_token["usuario_id"]))
+            .order_by(PedidoModel.fecha.desc(), PedidoModel.id.desc())
+        )
+        return [Pedido.from_orm(p) for p in result.scalars().all()]    
 
 
     @strawberry.field

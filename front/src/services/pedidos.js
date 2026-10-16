@@ -51,3 +51,28 @@ export async function obtenerMiPedido(id) {
   );
   return data.miPedido;
 }
+export async function obtenerMisPedidos() {
+  const data = await fetchAuth(
+    `
+    query MisPedidos {
+      misPedidos {
+        id
+        fecha
+        total
+        status
+        detalles {
+          id
+          cantidad
+          precio_unitario
+          producto {
+            id
+            nombre
+            imagen
+          }
+        }
+      }
+    }
+    `
+  );
+  return data.misPedidos;
+}
