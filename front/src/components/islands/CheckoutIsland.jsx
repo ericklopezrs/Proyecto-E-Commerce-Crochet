@@ -107,7 +107,6 @@ export default function CheckoutIsland() {
             </div>
 
             <button className="success-btn" onClick={handleConfirm} disabled={saving}>
-              <i className="fa-solid fa-database" style={{ marginRight: '8px' }}></i>
               {saving ? 'Procesando pago...' : 'Comprar'}
             </button>
           </div>
