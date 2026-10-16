@@ -88,7 +88,6 @@ class RefreshTokenModel(Base):
     jti: Mapped[uuid_mod.UUID] = mapped_column(PG_UUID(as_uuid=True), unique=True, index=True)
     usado: Mapped[bool] = mapped_column(default=False)
     creado_en: Mapped[Optional[datetime]] = mapped_column(
-        "created_en",
         DateTime(timezone=True), server_default=func.now()
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
