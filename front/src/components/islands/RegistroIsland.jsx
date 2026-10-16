@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 
 import { registrarUsuario } from '../../services/auth.js';
-
-
+import { showToastAfterRedirect } from '../../utils/toast.js';
 
 export default function RegistroIsland() {
   const [nombre, setNombre] = useState('');
@@ -39,10 +38,10 @@ export default function RegistroIsland() {
 
   try {
     await registrarUsuario(nombre, email, password);
-    alert('¡Cuenta creada! Ahora inicia sesión 🧸');
-    window.location.href = '/login'; 
+    showToastAfterRedirect('¡Cuenta creada! Ahora inicia sesión 🧸', 'success');
+    window.location.href = '/login';
   } catch (err) {
-    setError(err.message); 
+    setError(err.message);
     setLoading(false);
   }
   };
