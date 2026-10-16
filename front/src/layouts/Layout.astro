@@ -3,7 +3,6 @@ import { ClientRouter } from 'astro:transitions';
 import TopBarIsland from '../components/islands/TopBarIsland.jsx';
 import FloatingCartIsland from '../components/islands/FloatingCartIsland.jsx';
 import Footer from '../components/Footer.jsx';
-import '../utils/toast.js';
 import '../styles/App.css';
 
 const { title = 'Peluches Crochet', categorias = [] } = Astro.props;
@@ -31,4 +30,7 @@ const { title = 'Peluches Crochet', categorias = [] } = Astro.props;
       <Footer />
     </div>
   </body>
+  <script>
+  import '../utils/toast.js';
+</script>
 </html>
