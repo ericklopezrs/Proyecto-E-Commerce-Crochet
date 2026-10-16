@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ResultadoPagoIsland from '../../components/islands/ResultadoPagoIsland.jsx';
+import { getCategorias } from '../../lib/data';
+
+const categorias = await getCategorias();
+---
+
+<Layout title="Resultado del pago — Peluches Crochet" categorias={categorias}>
+  <ResultadoPagoIsland client:load />
+</Layout>

@@ -14,7 +14,6 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME")
 
-
 DATABASE_URL = (
     f"postgresql+asyncpg://{DB_USER}:{quote_plus(DB_PASSWORD or '')}"
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"

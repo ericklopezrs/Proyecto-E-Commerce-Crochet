@@ -14,6 +14,10 @@ from jwt_service import decodificar_token
 from database import engine, get_db
 from schema import schema
 
+from fastapi import HTTPException
+from database import AsyncSessionLocal
+from models import PedidoModel, ProductoModel
+from mercadoPago_client import estado_pedido, obtener_orden, validar_firma
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,6 +68,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/webhooks/mercadopago")
+async def webhook_mercadopago(request: Request):
+    data_id = request.query_params.get("data.id", "")
+    if not validar_firma(
+        request.headers.get("x-signature", ""),
+        request.headers.get("x-request-id", ""),
+        data_id,
+    ):
+        raise HTTPException(status_code=401, detail="Firma inválida")
+
+    if not data_id:
+        cuerpo = await request.json()
+        data_id = (cuerpo.get("data") or {}).get("id", "")
+    if not data_id:
+        return {"ok": True}
+
+    orden = await obtener_orden(data_id)
+    nuevo_estado = estado_pedido(orden)
+    if nuevo_estado is None:
+        return {"ok": True}
+
+    try:
+        pedido_id = int(orden["external_reference"])
+    except (KeyError, TypeError, ValueError):
+        return {"ok": True}
+
+    async with AsyncSessionLocal() as session:
+        async with session.begin():
+            pedido = await session.get(PedidoModel, pedido_id, with_for_update=True)
+            if pedido is None or pedido.status != "PENDIENTE":
+                return {"ok": True}
+
+            pedido.status = nuevo_estado
+
+            if nuevo_estado in ("RECHAZADO", "CANCELADO"):
+                for detalle in pedido.detalles:
+                    producto = await session.get(
+                        ProductoModel, detalle.producto_id, with_for_update=True
+                    )
+                    producto.stock += detalle.cantidad
+
+    return {"ok": True}
 
 # Si la carpeta no existe (por ejemplo, un repo sin imágenes), la crea
 # en vez de tronar al arrancar

@@ -21,3 +21,33 @@ export async function registrarPedido({ usuarioId, total, items }) {
     { usuario_id: usuarioId, total, items }
   );
 }
+export async function iniciarPago(pedidoId) {
+  const data = await fetchAuth(
+    `
+    mutation Pago($pedido_id: ID!) {
+      iniciarPago(pedido_id: $pedido_id) {
+        checkout_url
+        orden_id
+      }
+    }
+    `,
+    { pedido_id: pedidoId }
+  );
+  return data.iniciarPago;
+}
+
+export async function obtenerMiPedido(id) {
+  const data = await fetchAuth(
+    `
+    query MiPedido($id: ID!) {
+      miPedido(id: $id) {
+        id
+        total
+        status
+      }
+    }
+    `,
+    { id }
+  );
+  return data.miPedido;
+}

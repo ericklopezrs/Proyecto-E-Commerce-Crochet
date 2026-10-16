@@ -69,6 +69,11 @@ export default function TopBar({
               <span className="header-user-name">
                 Hola, {usuario.nombre.split(' ')[0]}
               </span>
+              {usuario.rol === 'ADMIN' && (
+                  <a href="/admin" className="header-login-btn" title="Panel de administración">
+                    <i className="fa-solid fa-chart-line"></i>
+                  </a>
+                )}
               <button
                 className="header-logout-btn"
                 onClick={onLogout}
