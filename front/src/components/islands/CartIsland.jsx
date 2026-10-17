@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
+import { fetchGraphQL } from '../../graphql/cliente.js';
 
 // Imagen de respaldo (no depende de internet) por si la foto no carga
 const IMAGEN_RESPALDO =
@@ -19,6 +21,14 @@ export default function CartIsland() {
   const cart = useCartStore((s) => s.cart);
   const removeFromCart = useCartStore((s) => s.removeFromCart);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const sincronizarStock = useCartStore((s) => s.sincronizarStock);
+
+  // Al abrir el carrito, pide el stock real al backend (sin caché)
+  useEffect(() => {
+    fetchGraphQL(`query { productos { id stock precio } }`)
+      .then((data) => sincronizarStock(data.productos ?? []))
+      .catch((err) => console.error('No se pudo actualizar el stock:', err));
+  }, []);
 
   const totalPiezas = cart.reduce((t, i) => t + i.cantidad, 0);
   const total = cart.reduce((t, i) => t + i.producto.precio * i.cantidad, 0);
@@ -109,7 +119,9 @@ export default function CartIsland() {
                           </div>
 
                           <span className={`ml-stock ${stock <= 1 || enMaximo ? 'alerta' : ''}`}>
-                            {stock === 1
+                            {stock === 0
+                              ? 'Agotado'
+                              : stock === 1
                               ? '¡Última disponible!'
                               : enMaximo
                               ? `Máximo disponible (${stock})`
