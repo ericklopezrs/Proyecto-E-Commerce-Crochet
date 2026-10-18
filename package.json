@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "@astrojs/vercel": "^11.0.15"
+    "httpx": "^3.0.1"
   }
 }
