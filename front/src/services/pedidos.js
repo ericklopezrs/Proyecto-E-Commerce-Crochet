@@ -21,19 +21,57 @@ export async function registrarPedido({ usuarioId, total, items }) {
     { usuario_id: usuarioId, total, items }
   );
 }
-export async function iniciarPago(pedidoId) {
+export async function pagarPedido({
+  pedidoId,
+  token,
+  paymentMethodId,
+  paymentType,
+  installments,
+  email,
+  identificationType,
+  identificationNumber,
+}) {
   const data = await fetchAuth(
     `
-    mutation Pago($pedido_id: ID!) {
-      iniciarPago(pedido_id: $pedido_id) {
-        checkout_url
+    mutation Pagar(
+      $pedido_id: ID!,
+      $token: String!,
+      $payment_method_id: String!,
+      $payment_type: String!,
+      $installments: Int!,
+      $email: String!,
+      $identification_type: String,
+      $identification_number: String
+    ) {
+      pagarPedido(
+        pedido_id: $pedido_id,
+        token: $token,
+        payment_method_id: $payment_method_id,
+        payment_type: $payment_type,
+        installments: $installments,
+        email: $email,
+        identification_type: $identification_type,
+        identification_number: $identification_number
+      ) {
+        pedido_status
         orden_id
+        mp_status
+        mp_status_detail
       }
     }
     `,
-    { pedido_id: pedidoId }
+    {
+      pedido_id: String(pedidoId),
+      token,
+      payment_method_id: paymentMethodId,
+      payment_type: paymentType || 'credit_card',
+      installments: Number(installments) || 1,
+      email,
+      identification_type: identificationType ?? null,
+      identification_number: identificationNumber ?? null,
+    }
   );
-  return data.iniciarPago;
+  return data.pagarPedido;
 }
 
 export async function obtenerMiPedido(id) {
@@ -44,6 +82,16 @@ export async function obtenerMiPedido(id) {
         id
         total
         status
+        detalles {
+          id
+          cantidad
+          precio_unitario
+          producto {
+            id
+            nombre
+            imagen
+          }
+        }
       }
     }
     `,

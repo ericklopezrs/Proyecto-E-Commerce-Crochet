@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import selectinload
 
 from decimal import Decimal
-from mercadoPago_client import crear_orden
+from mercadoPago_client import MercadoPagoError, crear_orden_pago, estado_pedido
 
 import strawberry
 from email_validator import EmailNotValidError, validate_email
@@ -120,7 +120,7 @@ class DetallePedido:
         )
 
     @strawberry.field
-    def producto(self) -> Optional["Producto"]:
+    def producto(self) -> "Producto":
         return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
 @strawberry.type
@@ -182,8 +182,10 @@ class AuthPayload:
 
 @strawberry.type
 class PagoPayload:
-    checkout_url: str
+    pedido_status: str          # PENDIENTE / PAGADO / RECHAZADO / CANCELADO
     orden_id: str
+    mp_status: Optional[str] = None
+    mp_status_detail: Optional[str] = None
 
 @strawberry.type
 class RefreshPayload:
@@ -212,14 +214,6 @@ class Query:
         if obj is None or obj.usuario_id != int(usuario_token["usuario_id"]):
             return None
         return Pedido.from_orm(obj)
-
-    @strawberry.field(name="productosAdmin")
-    async def productos_admin(self, info: strawberry.Info) -> list[Producto]:
-        requerir_admin(info)
-        result = await info.context["session"].execute(
-            select(ProductoModel).order_by(ProductoModel.id)
-        )
-        return [Producto.from_orm(p) for p in result.scalars().all()]
 
     @strawberry.field(name="misPedidos")
     async def mis_pedidos(self, info: strawberry.Info) -> list[Pedido]:
@@ -284,14 +278,24 @@ class Query:
 @strawberry.type
 class Mutation:
 
-    @strawberry.mutation(name="iniciarPago")
-    async def iniciar_pago(
-        self, info: strawberry.Info, *, pedido_id: strawberry.ID
+    @strawberry.mutation(name="pagarPedido")
+    async def pagar_pedido(
+        self, info: strawberry.Info, *,
+        pedido_id: strawberry.ID,
+        token: str,
+        payment_method_id: str,
+        payment_type: str = "credit_card",
+        installments: int = 1,
+        email: str,
+        identification_type: Optional[str] = None,
+        identification_number: Optional[str] = None,
     ) -> PagoPayload:
         session = info.context["session"]
         usuario_token = requerir_usuario(info)
 
-        pedido = await session.get(PedidoModel, int(pedido_id))
+        # with_for_update: si el usuario le pica dos veces a "Pagar", la segunda
+        # petición espera aquí y ya no encuentra el pedido PENDIENTE.
+        pedido = await session.get(PedidoModel, int(pedido_id), with_for_update=True)
         if pedido is None or pedido.usuario_id != int(usuario_token["usuario_id"]):
             raise Exception("Pedido no encontrado")
         if pedido.status != "PENDIENTE":
@@ -305,8 +309,46 @@ class Mutation:
             }
             for d in pedido.detalles
         ]
-        orden = await crear_orden(pedido.id, items)
-        return PagoPayload(checkout_url=orden["checkout_url"], orden_id=orden["id"])
+
+        try:
+            orden = await crear_orden_pago(
+                pedido.id,
+                items,
+                token=token,
+                payment_method_id=payment_method_id,
+                payment_type=payment_type,
+                installments=installments,
+                email=email,
+                identification={"type": identification_type, "number": identification_number},
+            )
+        except MercadoPagoError as err:
+            # El pedido sigue PENDIENTE (con su stock apartado) para reintentar.
+            await session.rollback()
+            raise Exception(str(err))
+
+        pedido.mp_order_id = str(orden.get("id"))
+        nuevo_estado = estado_pedido(orden)
+
+        if nuevo_estado is not None:
+            pedido.status = nuevo_estado
+            if nuevo_estado == "PAGADO":
+                pedido.fecha_pago = datetime.now(timezone.utc)
+            else:  # RECHAZADO / CANCELADO -> regresamos el stock apartado
+                for detalle in pedido.detalles:
+                    producto = await session.get(
+                        ProductoModel, detalle.producto_id, with_for_update=True
+                    )
+                    producto.stock += detalle.cantidad
+
+        await session.commit()
+
+        pago = (orden.get("transactions", {}).get("payments") or [{}])[0]
+        return PagoPayload(
+            pedido_status=pedido.status,
+            orden_id=str(orden.get("id")),
+            mp_status=orden.get("status"),
+            mp_status_detail=pago.get("status_detail") or orden.get("status_detail"),
+        )
 
     @strawberry.mutation(name="crearProducto")
     
