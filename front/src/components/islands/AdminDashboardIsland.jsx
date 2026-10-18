@@ -1,5 +1,6 @@
 import { Lock } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
+import AdminNav from '../AdminNav.jsx';
 
 // ====== DATOS DE MENTIRA (solo para que las gráficas tengan algo que dibujar) ======
 const KPIS = [
@@ -152,6 +153,7 @@ export default function AdminDashboardIsland() {
     return (
       <div className="main-container">
         <main className="content">
+            <AdminNav activa="dashboard" />
           <div className="empty-cart" style={{ maxWidth: '480px', margin: '0 auto' }}>
             <Lock size={32} color="#64748b" />
             <p>Esta sección es solo para administradores.</p>
