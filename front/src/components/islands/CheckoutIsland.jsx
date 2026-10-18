@@ -12,6 +12,17 @@ import '../../styles/pedidos.css';
 const PUBLIC_KEY = import.meta.env.PUBLIC_MP_PUBLIC_KEY;
 const BRICK_ID = 'cardPaymentBrick_container';
 
+function cargarSdkMP() {
+  if (window.MercadoPago) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://sdk.mercadopago.com/js/v2';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar el SDK de Mercado Pago'));
+    document.head.appendChild(script);
+  });
+}
+
 // Mensajes amigables para los status_detail más comunes de rechazo.
 const MOTIVOS = {
   rejected_by_issuer: 'Tu banco rechazó el pago. Prueba con otra tarjeta.',
@@ -198,8 +209,7 @@ export default function CheckoutIsland() {
         return;
       }
       try {
-        const { loadMercadoPago } = await import('@mercadopago/sdk-js');
-        await loadMercadoPago();
+        await cargarSdkMP();
         if (cancelado) return;
 
         const mp = new window.MercadoPago(PUBLIC_KEY, { locale: 'es-MX' });
