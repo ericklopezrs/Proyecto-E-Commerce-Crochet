@@ -60,6 +60,7 @@ class Producto:
     nombre: str
     precio: float
     stock: int
+    activo: bool
     _orm: strawberry.Private[ProductoModel]
     descripcion: Optional[str] = None
     imagen: Optional[str] = None
@@ -71,15 +72,15 @@ class Producto:
             nombre=obj.nombre,
             precio=float(obj.precio),
             stock=obj.stock,
+            activo=obj.activo,
             descripcion=obj.descripcion,
             imagen=obj.imagen,
             _orm=obj,
         )
-
+        
     @strawberry.field
     def categoria(self) -> Optional["Categoria"]:
         return Categoria.from_orm(self._orm.categoria) if self._orm.categoria else None
-
 
 @strawberry.type
 class Categoria:
@@ -99,7 +100,7 @@ class Categoria:
 
     @strawberry.field
     def productos(self) -> list["Producto"]:
-        return [Producto.from_orm(p) for p in self._orm.productos]
+        return [Producto.from_orm(p) for p in self._orm.productos if p.activo]
 
 
 @strawberry.type
@@ -119,9 +120,8 @@ class DetallePedido:
         )
 
     @strawberry.field
-    def producto(self) -> "Producto":
-        return Producto.from_orm(self._orm.producto)
-
+    def producto(self) -> Optional["Producto"]:
+        return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
 @strawberry.type
 class Pedido:
@@ -151,6 +151,7 @@ class Pedido:
     @strawberry.field
     def detalles(self) -> list["DetallePedido"]:
         return [DetallePedido.from_orm(d) for d in self._orm.detalles]
+        
 
 
 @strawberry.input
@@ -189,6 +190,16 @@ class RefreshPayload:
     access_token: str
     refresh_token: str
 
+def _validar_producto(nombre=None, precio=None, stock=None):
+    if nombre is not None:
+        if not nombre.strip():
+            raise Exception("El nombre no puede estar vacío")
+        if len(nombre) > 100:
+            raise Exception("El nombre no puede pasar de 100 caracteres")
+    if precio is not None and precio <= 0:
+        raise Exception("El precio debe ser mayor a 0")
+    if stock is not None and stock < 0:
+        raise Exception("El stock no puede ser negativo")
 
 @strawberry.type
 class Query:
@@ -201,6 +212,24 @@ class Query:
         if obj is None or obj.usuario_id != int(usuario_token["usuario_id"]):
             return None
         return Pedido.from_orm(obj)
+
+    @strawberry.field(name="productosAdmin")
+    async def productos_admin(self, info: strawberry.Info) -> list[Producto]:
+        requerir_admin(info)
+        result = await info.context["session"].execute(
+            select(ProductoModel).order_by(ProductoModel.id)
+        )
+        return [Producto.from_orm(p) for p in result.scalars().all()]
+
+    @strawberry.field(name="misPedidos")
+    async def mis_pedidos(self, info: strawberry.Info) -> list[Pedido]:
+        usuario_token = requerir_usuario(info)
+        result = await info.context["session"].execute(
+            select(PedidoModel)
+            .where(PedidoModel.usuario_id == int(usuario_token["usuario_id"]))
+            .order_by(PedidoModel.fecha.desc(), PedidoModel.id.desc())
+        )
+        return [Pedido.from_orm(p) for p in result.scalars().all()]    
 
 
     @strawberry.field
@@ -230,14 +259,18 @@ class Query:
         offset: Optional[int] = None,
     ) -> list[Producto]:
         result = await info.context["session"].execute(
-            select(ProductoModel).order_by(ProductoModel.id).limit(limit).offset(offset)
+            select(ProductoModel)
+            .where(ProductoModel.activo.is_(True))
+            .order_by(ProductoModel.id)
+            .limit(limit)
+            .offset(offset)
         )
         return [Producto.from_orm(p) for p in result.scalars().all()]
 
     @strawberry.field
     async def producto(self, info: strawberry.Info, id: strawberry.ID) -> Optional[Producto]:
         obj = await info.context["session"].get(ProductoModel, int(id))
-        return Producto.from_orm(obj) if obj else None
+        return Producto.from_orm(obj) if obj and obj.activo else None
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
@@ -276,6 +309,7 @@ class Mutation:
         return PagoPayload(checkout_url=orden["checkout_url"], orden_id=orden["id"])
 
     @strawberry.mutation(name="crearProducto")
+    
     async def crear_producto(
         self, info: strawberry.Info, *,
         nombre: str,
@@ -285,6 +319,8 @@ class Mutation:
         descripcion: Optional[str] = None,
         imagen: Optional[str] = None,
     ) -> Producto:
+        requerir_admin(info)
+        _validar_producto(nombre, precio, stock)
         session = info.context["session"]
 
         categoria = await session.get(CategoriaModel, int(categoria_id))
@@ -309,7 +345,14 @@ class Mutation:
         nombre: Optional[str] = None,
         precio: Optional[float] = None,
         stock: Optional[int] = None,
+        descripcion: Optional[str] = None,
+        categoria_id: Optional[strawberry.ID] = None,
+        imagen: Optional[str] = None 
+        
     ) -> Producto:
+
+        requerir_admin(info)
+        _validar_producto(nombre, precio, stock)
         session = info.context["session"]
 
         producto = await session.get(ProductoModel, int(id))
@@ -322,18 +365,44 @@ class Mutation:
             producto.precio = precio
         if stock is not None:
             producto.stock = stock
+        if descripcion is not None:
+            producto.descripcion = descripcion
+        if imagen is not None:
+            producto.imagen = imagen
+        if categoria_id is not None:
+            categoria = await session.get(CategoriaModel, int(categoria_id))
+            if categoria is None:
+                raise Exception(f"No existe la categoría {categoria_id}")
+            producto.categoria = categoria
 
         await session.commit()
         return Producto.from_orm(producto)
 
     @strawberry.mutation(name="eliminarProducto")
     async def eliminar_producto(self, info: strawberry.Info, id: strawberry.ID) -> bool:
+        requerir_admin(info)
         session = info.context["session"]
+
         producto = await session.get(ProductoModel, int(id))
-        if producto is not None:
-            await session.delete(producto)
-            await session.commit()
+        if producto is None:
+            raise Exception(f"No existe el producto {id}")
+
+        producto.activo = False
+        await session.commit()
         return True
+    
+    @strawberry.mutation(name="restaurarProducto")
+    async def restaurar_producto(self, info: strawberry.Info, id: strawberry.ID) -> Producto:
+        requerir_admin(info)
+        session = info.context["session"]
+
+        producto = await session.get(ProductoModel, int(id))
+        if producto is None:
+            raise Exception(f"No existe el producto {id}")
+
+        producto.activo = True
+        await session.commit()
+        return Producto.from_orm(producto)
 
     @strawberry.mutation
     async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
@@ -498,8 +567,8 @@ class Mutation:
             producto = await session.get(
                 ProductoModel, int(item.producto_id), with_for_update=True
             )
-            if producto is None:
-                raise Exception(f"No existe el producto {item.producto_id}")
+            if producto is None or not producto.activo:
+                raise Exception(f"El producto {item.producto_id} ya no está disponible")
             if producto.stock < item.cantidad:
                 raise Exception(
                     f"Stock insuficiente de '{producto.nombre}': "
@@ -527,3 +596,4 @@ schema = strawberry.Schema(
     mutation=Mutation,
     config=StrawberryConfig(auto_camel_case=False),
 )
+

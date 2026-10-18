@@ -69,6 +69,9 @@ export default function TopBar({
               <span className="header-user-name">
                 Hola, {usuario.nombre.split(' ')[0]}
               </span>
+              <a href="/mis-pedidos" className="header-login-btn" title="Mis pedidos">
+                <i className="fa-solid fa-box"></i>
+              </a>
               {usuario.rol === 'ADMIN' && (
                   <a href="/admin" className="header-login-btn" title="Panel de administración">
                     <i className="fa-solid fa-chart-line"></i>

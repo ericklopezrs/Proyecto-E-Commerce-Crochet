@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid as uuid_mod  # arriba del archivo, junto a los demás imports
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM, UUID as PG_UUID
@@ -22,16 +22,16 @@ class CategoriaModel(Base):
         back_populates="categoria", lazy="raise"
     )
 
-
 class ProductoModel(Base):
     __tablename__ = "productos"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(100))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
-    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))  
+    precio: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     imagen: Mapped[Optional[str]] = mapped_column(Text)
     stock: Mapped[int]
+    activo: Mapped[bool] = mapped_column(default=True, server_default=text("true"))
     categoria_id: Mapped[int] = mapped_column(ForeignKey("categorias.id"))
 
     categoria: Mapped[CategoriaModel] = relationship(

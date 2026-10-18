@@ -9,7 +9,10 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from strawberry.fastapi import GraphQLRouter
 from jwt_service import decodificar_token
-
+from fastapi import File, UploadFile
+from storage_client import MAX_BYTES, guardar_imagen
+import logging
+logger = logging.getLogger("uvicorn.error")
 
 from database import engine, get_db
 from schema import schema
@@ -112,7 +115,33 @@ async def webhook_mercadopago(request: Request):
 
     return {"ok": True}
 
+@app.post("/admin/upload")
+async def subir_imagen_producto(request: Request, archivo: UploadFile = File(...)):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Falta el token")
+
+    payload = decodificar_token(auth_header.removeprefix("Bearer "))
+    if payload is None or payload.get("tipo") != "access":
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    if payload.get("rol") != "ADMIN":
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+    contenido = await archivo.read(MAX_BYTES + 1)
+    if len(contenido) > MAX_BYTES:
+        raise HTTPException(status_code=413, detail="La imagen no puede pasar de 2 MB")
+
+    try:
+        url = await guardar_imagen(contenido)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        logger.exception("Falló la subida de imagen a Supabase Storage")
+        raise HTTPException(status_code=502, detail="No se pudo guardar la imagen")
+
+    return {"url": url}
+
 # Si la carpeta no existe (por ejemplo, un repo sin imágenes), la crea
-# en vez de tronar al arrancar
+# en vez de tronar al arrancara
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

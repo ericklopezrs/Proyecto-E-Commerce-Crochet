@@ -1110,3 +1110,67 @@
     transform: translateY(0);
   }
 }
+/* ===== Mis pedidos ===== */
+.pedidos-lista { display: flex; flex-direction: column; gap: 12px; }
+
+.pedido-card {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pedido-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.pedido-header:hover { background-color: #f8fafc; }
+
+.pedido-header-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pedido-numero { font-weight: 700; font-size: 16px; color: #0f172a; }
+.pedido-fecha { font-size: 13px; color: #64748b; }
+
+.pedido-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pedido-status-pendiente { background-color: #fef3c7; color: #92400e; }
+.pedido-status-pagado    { background-color: #dcfce7; color: #166534; }
+.pedido-status-rechazado { background-color: #fee2e2; color: #991b1b; }
+.pedido-status-cancelado { background-color: #e2e8f0; color: #475569; }
+
+.pedido-total { font-size: 18px; font-weight: 800; color: #0f172a; white-space: nowrap; }
+.pedido-chevron { color: #94a3b8; }
+
+.pedido-detalles {
+  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pedido-detalle { display: flex; align-items: center; gap: 12px; }
+.pedido-detalle-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pedido-detalle-subtotal { font-weight: 700; color: #0f172a; white-space: nowrap; }
+.pedido-acciones { display: flex; justify-content: flex-end; padding-top: 4px; }
+
+@media (max-width: 600px) {
+  .pedido-header { flex-wrap: wrap; gap: 8px 12px; }
+  .pedido-header-info { flex-basis: 100%; }
+  .pedido-total { margin-left: auto; }
+}

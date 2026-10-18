@@ -57,6 +57,24 @@ export const useCartStore = create(
       removeFromCart: (id) =>
         set({ cart: get().cart.filter((i) => !mismoId(i.producto.id, id)) }),
 
+      // Reemplaza el stock/precio "congelado" de cada item por el valor
+      // actual de la BDD y recorta la cantidad si ya no alcanza.
+      sincronizarStock: (productosFrescos) => {
+        const porId = new Map(productosFrescos.map((p) => [String(p.id), p]));
+        set({
+          cart: get().cart
+            .filter((item) => porId.has(String(item.producto.id))) // producto borrado
+            .map((item) => {
+              const fresco = porId.get(String(item.producto.id));
+              const stock = fresco.stock ?? 0;
+              return {
+                producto: { ...item.producto, stock, precio: fresco.precio },
+                cantidad: stock > 0 ? Math.min(item.cantidad, stock) : item.cantidad,
+              };
+            }),
+        });
+      },
+
       clearCart: () => set({ cart: [] }),
 
       getTotal: () =>
