@@ -2,7 +2,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -21,6 +21,7 @@ from fastapi import HTTPException
 from database import AsyncSessionLocal
 from models import PedidoModel, ProductoModel
 from mercadoPago_client import estado_pedido, obtener_orden, validar_firma
+from email_service import enviar_confirmacion_pago
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,7 +74,7 @@ app.add_middleware(
 )
 
 @app.post("/webhooks/mercadopago")
-async def webhook_mercadopago(request: Request):
+async def webhook_mercadopago(request: Request, background_tasks: BackgroundTasks):
     data_id = request.query_params.get("data.id", "")
     if not validar_firma(
         request.headers.get("x-signature", ""),
@@ -98,6 +99,7 @@ async def webhook_mercadopago(request: Request):
     except (KeyError, TypeError, ValueError):
         return {"ok": True}
 
+    correo = None
     async with AsyncSessionLocal() as session:
         async with session.begin():
             pedido = await session.get(PedidoModel, pedido_id, with_for_update=True)
@@ -106,12 +108,29 @@ async def webhook_mercadopago(request: Request):
 
             pedido.status = nuevo_estado
 
+            # Datos para el correo; se envía DESPUÉS del commit
+            if nuevo_estado == "PAGADO" and pedido.usuario:
+                correo = {
+                    "para": pedido.usuario.email,
+                    "nombre": pedido.usuario.nombre,
+                    "pedido_id": pedido.id,
+                    "lineas": [
+                        (d.producto.nombre, d.cantidad, float(d.precio_unitario))
+                        for d in pedido.detalles
+                    ],
+                    "total": float(pedido.total),
+                    "direccion": pedido.direccion_envio,
+                }
+
             if nuevo_estado in ("RECHAZADO", "CANCELADO"):
                 for detalle in pedido.detalles:
                     producto = await session.get(
                         ProductoModel, detalle.producto_id, with_for_update=True
                     )
                     producto.stock += detalle.cantidad
+
+    if correo:
+        background_tasks.add_task(enviar_confirmacion_pago, **correo)
 
     return {"ok": True}
 

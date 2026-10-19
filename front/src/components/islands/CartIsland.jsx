@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { fetchGraphQL } from '../../graphql/cliente.js';
-
+import PrecioUSD from '../PrecioUSD.jsx';
 // Imagen de respaldo (no depende de internet) por si la foto no carga
 const IMAGEN_RESPALDO =
   'data:image/svg+xml;utf8,' +
@@ -160,6 +160,10 @@ export default function CartIsland() {
                   <span>Total</span>
                   <span>{mxn(total)}</span>
                 </div>
+                <div className="ml-summary-row">
+                  <span>Equivalente aprox.</span>
+                  <PrecioUSD mxn={total} />
+               </div>
 
                 <a
                   href="/checkout"

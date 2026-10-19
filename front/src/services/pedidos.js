@@ -1,24 +1,26 @@
 import { fetchAuth } from '../graphql/clienteAuth.js';
 
-export async function registrarPedido({ usuarioId, total, items }) {
+export async function registrarPedido({ usuarioId, total, items, direccion }) {
   return fetchAuth(
     `
     mutation Registrar(
       $usuario_id: ID!,
       $total: Float!,
-      $items: [ItemPedidoInput!]!
+      $items: [ItemPedidoInput!]!,
+      $direccion_envio: String
     ) {
       registrarPedido(
         usuario_id: $usuario_id,
         total: $total,
-        items: $items
+        items: $items,
+        direccion_envio: $direccion_envio
       ) {
         id
         total
       }
     }
     `,
-    { usuario_id: usuarioId, total, items }
+    { usuario_id: usuarioId, total, items, direccion_envio: direccion }
   );
 }
 export async function iniciarPago(pedidoId) {

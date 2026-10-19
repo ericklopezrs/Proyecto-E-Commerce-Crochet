@@ -4,6 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import selectinload
 
+from postali_service import buscar_cp
+from divisas_service import obtener_tasa
+
 from decimal import Decimal
 from mercadoPago_client import crear_orden
 
@@ -190,6 +193,14 @@ class RefreshPayload:
     access_token: str
     refresh_token: str
 
+@strawberry.type
+class DireccionCP:
+    cp: str
+    estado: str
+    municipio: str
+    ciudad: Optional[str]
+    colonias: list[str]
+
 def _validar_producto(nombre=None, precio=None, stock=None):
     if nombre is not None:
         if not nombre.strip():
@@ -203,6 +214,14 @@ def _validar_producto(nombre=None, precio=None, stock=None):
 
 @strawberry.type
 class Query:
+    @strawberry.field(name="tipoCambio")
+    async def tipo_cambio(self, moneda: str = "USD") -> float:
+        return await obtener_tasa(moneda)
+
+    @strawberry.field(name="direccionPorCP")
+    async def direccion_por_cp(self, cp: str) -> DireccionCP:
+        return DireccionCP(**(await buscar_cp(cp)))
+
     @strawberry.field(name="miPedido")
     async def mi_pedido(
         self, info: strawberry.Info, id: strawberry.ID
@@ -549,6 +568,7 @@ class Mutation:
         usuario_id: strawberry.ID,
         total: float,
         items: list[ItemPedidoInput],
+        direccion_envio: Optional[str] = None,
     ) -> Pedido:
         session = info.context["session"]
         usuario = requerir_usuario(info)
@@ -558,6 +578,7 @@ class Mutation:
             total=0,
             status="PENDIENTE",
             fecha=func.now(),
+            direccion_envio=direccion_envio,
         )
         session.add(pedido)
         await session.flush()   #  asegura que el pedido ya tenga id

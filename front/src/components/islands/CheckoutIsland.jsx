@@ -5,7 +5,13 @@ import { useAuthStore } from '../../store/useAuthStore.js';
 import { registrarPedido } from '../../services/pedidos.js';
 import { showToast, showToastAfterRedirect } from '../../utils/toast.js';
 import { iniciarPago } from '../../services/pedidos.js';
+import { buscarPorCP } from '../../services/direccion.js';
+import PrecioUSD from '../PrecioUSD.jsx';
 
+const campo = {
+  width: '100%', padding: '10px', border: '1px solid #cbd5e1',
+  borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+};
 
 export default function CheckoutIsland() {
   const { cart, clearCart, getTotal } = useCartStore();
@@ -14,6 +20,24 @@ export default function CheckoutIsland() {
 
   const [errorPedido, setErrorPedido] = useState('');
   const [pedidoListo, setPedidoListo] = useState(null);
+  const [dir, setDir] = useState({ cp: '', colonia: '', calle: '' });
+  const [zona, setZona] = useState(null);
+  const [errorCP, setErrorCP] = useState('');
+
+  const handleCP = async (valor) => {
+    const cp = valor.replace(/\D/g, '').slice(0, 5);
+    setDir((d) => ({ ...d, cp, colonia: '' }));
+    setZona(null);
+    setErrorCP('');
+    if (cp.length !== 5) return;
+    try {
+      const info = await buscarPorCP(cp);
+      setZona(info);
+      setDir((d) => ({ ...d, colonia: info.colonias[0] ?? '' }));
+    } catch (err) {
+      setErrorCP(err.message);
+    }
+  };
 
   if (!access_token) {
     return (
@@ -103,7 +127,13 @@ export default function CheckoutIsland() {
     );
   }
 
+  const direccionLista = zona && dir.colonia && dir.calle.trim().length >= 5;
+
   const handleConfirm = async () => {
+    if (!direccionLista) {
+      setErrorPedido('Completa tu dirección de envío.');
+      return;
+    }
     setSaving(true);
     setErrorPedido('');
     try {
@@ -117,6 +147,7 @@ export default function CheckoutIsland() {
         usuarioId: usuario.id,
         total: parseFloat(getTotal()),
         items,
+        direccion: `${dir.calle.trim()}, ${dir.colonia}, CP ${dir.cp}, ${zona.municipio}, ${zona.estado}`,
       });
 
       const { checkout_url } = await iniciarPago(pedido.id);
@@ -171,9 +202,46 @@ export default function CheckoutIsland() {
 
             <hr style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '16px 0' }} />
 
+            <h4 style={{ margin: '0 0 12px 0', color: '#64748b' }}>Dirección de envío</h4>
+            <div style={{ display: 'grid', gap: '10px', marginBottom: '16px' }}>
+              <input
+                style={campo}
+                inputMode="numeric"
+                placeholder="Código postal (5 dígitos)"
+                value={dir.cp}
+                onChange={(e) => handleCP(e.target.value)}
+              />
+              {errorCP && <small style={{ color: '#dc2626' }}>{errorCP}</small>}
+              {zona && (
+                <>
+                  <input style={campo} value={`${zona.municipio}, ${zona.estado}`} readOnly />
+                  <select
+                    style={campo}
+                    value={dir.colonia}
+                    onChange={(e) => setDir({ ...dir, colonia: e.target.value })}
+                  >
+                    {zona.colonias.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+              <input
+                style={campo}
+                placeholder="Calle y número"
+                value={dir.calle}
+                onChange={(e) => setDir({ ...dir, calle: e.target.value })}
+              />
+            </div>
+
+            <hr style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '16px 0' }} />
+
             <div className="cart-total-row" style={{ paddingTop: '0' }}>
               <span>Total a Pagar:</span>
               <span style={{ fontSize: '22px' }}>${getTotal()} MXN</span>
+            </div>
+            <div style={{ textAlign: 'right', color: '#64748b', fontSize: '14px', marginBottom: '12px' }}>
+              <PrecioUSD mxn={getTotal()} />
             </div>
 
             {errorPedido && (
@@ -183,7 +251,11 @@ export default function CheckoutIsland() {
               </div>
             )}
 
-            <button className="success-btn" onClick={handleConfirm} disabled={saving}>
+            <button
+              className="success-btn"
+              onClick={handleConfirm}
+              disabled={saving || !direccionLista}
+            >
               <i className="fa-solid fa-credit-card" style={{ marginRight: '8px' }}></i>
               {saving ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago'}
             </button>

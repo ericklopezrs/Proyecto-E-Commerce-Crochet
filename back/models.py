@@ -77,7 +77,8 @@ class PedidoModel(Base):
     mp_checkout_url: Mapped[Optional[str]] = mapped_column(Text)
     fecha_pago: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     expira_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-
+    direccion_envio: Mapped[Optional[str]] = mapped_column(Text)
+    
     usuario: Mapped[Optional["UsuarioModel"]] = relationship(lazy="selectin")
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
         back_populates="pedido", lazy="selectin"

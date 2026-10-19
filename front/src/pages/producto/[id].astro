@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import ProductActionsIsland from '../../components/islands/ProductActionsIsland.jsx';
 import { getCategorias } from '../../lib/data';
-
+import PrecioUSD from '../../components/PrecioUSD.jsx';
 const { id } = Astro.params;
 const categorias = await getCategorias();
 
@@ -45,6 +45,9 @@ if (!producto) {
 
           <div class="product-price" style="font-size: 28px; margin-bottom: 20px;">
             ${producto.precio} MXN
+          </div>
+          <div style="color: #64748b; font-size: 14px; margin: -12px 0 20px 0;">
+            <PrecioUSD client:visible mxn={producto.precio} />
           </div>
 
           <ProductActionsIsland client:visible producto={producto} />
