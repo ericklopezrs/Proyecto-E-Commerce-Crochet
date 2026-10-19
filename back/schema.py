@@ -1,3 +1,4 @@
+import asyncio
 import enum
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -9,6 +10,7 @@ from divisas_service import obtener_tasa
 
 from decimal import Decimal
 from mercadoPago_client import MercadoPagoError, crear_orden_pago, estado_pedido
+from email_service import enviar_confirmacion_pago
 
 import strawberry
 from email_validator import EmailNotValidError, validate_email
@@ -359,7 +361,26 @@ class Mutation:
                     )
                     producto.stock += detalle.cantidad
 
+        # Datos del correo antes del commit (después la sesión ya los expiró)
+        correo = None
+        if pedido.status == "PAGADO" and pedido.usuario:
+            correo = {
+                "para": pedido.usuario.email,
+                "nombre": pedido.usuario.nombre,
+                "pedido_id": pedido.id,
+                "lineas": [
+                    (d.producto.nombre, d.cantidad, float(d.precio_unitario))
+                    for d in pedido.detalles
+                ],
+                "total": float(pedido.total),
+                "direccion": pedido.direccion_envio,
+            }
+
         await session.commit()
+
+        if correo:
+            # En segundo plano: el cliente no espera a Brevo para ver "Pago aprobado"
+            asyncio.create_task(enviar_confirmacion_pago(**correo))
 
         pago = (orden.get("transactions", {}).get("payments") or [{}])[0]
         return PagoPayload(
@@ -659,4 +680,3 @@ schema = strawberry.Schema(
     mutation=Mutation,
     config=StrawberryConfig(auto_camel_case=False),
 )
-
