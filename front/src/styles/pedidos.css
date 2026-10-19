@@ -1,0 +1,251 @@
+/* =========================================================
+   Estilos de Checkout y Mis pedidos (prefijo pc- = "pedidos/checkout")
+   Archivo independiente: no depende de App.css
+   ========================================================= */
+.pc-page {
+  --pc-morado: #baa2f3;
+  --pc-morado-oscuro: #7c5cd6;
+  --pc-morado-suave: #f3eefe;
+  --pc-texto: #0f172a;
+  --pc-gris: #64748b;
+  --pc-borde: #e2e8f0;
+  --pc-fondo: #ffffff;
+
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--pc-texto);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.pc-page *, .pc-page *::before, .pc-page *::after { box-sizing: border-box; }
+.pc-page-narrow { max-width: 560px; }
+
+.pc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pc-gris);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+.pc-back:hover { color: var(--pc-morado-oscuro); }
+
+.pc-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 20px;
+}
+.pc-title i { color: var(--pc-morado-oscuro); }
+
+.pc-card {
+  background: var(--pc-fondo);
+  border: 1px solid var(--pc-borde);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.pc-card + .pc-card { margin-top: 16px; }
+
+.pc-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pc-gris);
+}
+
+/* ---------- Renglones de producto (resumen / detalle) ---------- */
+.pc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.pc-item + .pc-item { border-top: 1px dashed var(--pc-borde); }
+
+.pc-thumb {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--pc-borde);
+  background: #f8fafc;
+}
+
+.pc-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pc-item-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--pc-texto);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.pc-item-name:hover { color: var(--pc-morado-oscuro); }
+.pc-item-sub { font-size: 13px; color: var(--pc-gris); }
+.pc-item-price { font-weight: 700; font-size: 14px; white-space: nowrap; }
+
+.pc-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--pc-borde);
+  font-weight: 700;
+}
+.pc-total strong { font-size: 22px; }
+
+.pc-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  font-size: 14px;
+}
+.pc-muted { color: var(--pc-gris); font-size: 14px; }
+
+/* ---------- Botones ---------- */
+.pc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--pc-texto);
+  color: #fff;
+  transition: background 0.15s, transform 0.15s;
+}
+.pc-btn:hover { background: #334155; transform: translateY(-1px); }
+.pc-btn-morado { background: var(--pc-morado-oscuro); }
+.pc-btn-morado:hover { background: #6846c4; }
+.pc-btn-ghost {
+  background: transparent;
+  color: var(--pc-texto);
+  border: 1px solid var(--pc-borde);
+}
+.pc-btn-ghost:hover { background: #f8fafc; }
+
+/* ---------- Pantalla de resultado ---------- */
+.pc-result { text-align: center; padding: 32px 24px; }
+.pc-result-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pc-result-ok .pc-result-icon { background: #dcfce7; color: #16a34a; }
+.pc-result-wait .pc-result-icon { background: #fef9c3; color: #a16207; }
+.pc-result-error .pc-result-icon { background: #fee2e2; color: #dc2626; }
+.pc-result h3 { margin: 0 0 8px; font-size: 22px; }
+.pc-result p { margin: 0 auto 20px; color: var(--pc-gris); max-width: 380px; line-height: 1.5; }
+.pc-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.pc-empty { text-align: center; padding: 40px 24px; color: var(--pc-gris); }
+.pc-empty i { font-size: 34px; display: block; margin-bottom: 12px; color: var(--pc-morado); }
+.pc-empty .pc-actions { margin-top: 18px; }
+
+/* ---------- Mis pedidos ---------- */
+.pc-orders { display: flex; flex-direction: column; gap: 12px; }
+
+.pc-order {
+  background: var(--pc-fondo);
+  border: 1px solid var(--pc-borde);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.pc-order:hover { border-color: var(--pc-morado); box-shadow: 0 4px 14px rgba(124, 92, 214, 0.12); }
+
+.pc-order-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.pc-order-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pc-order-num { font-weight: 800; font-size: 15px; }
+.pc-order-date { font-size: 13px; color: var(--pc-gris); }
+.pc-order-total { font-weight: 800; font-size: 15px; white-space: nowrap; }
+.pc-chevron { color: var(--pc-gris); }
+
+.pc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pc-badge-pendiente { background: #fef9c3; color: #a16207; }
+.pc-badge-pagado { background: #dcfce7; color: #15803d; }
+.pc-badge-rechazado { background: #fee2e2; color: #b91c1c; }
+.pc-badge-cancelado { background: #f1f5f9; color: #475569; }
+
+.pc-order-body {
+  padding: 4px 18px 16px;
+  border-top: 1px solid var(--pc-borde);
+  background: #fcfbff;
+}
+.pc-order-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--pc-borde);
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 560px) {
+  .pc-order-head {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "info total" "badge chev";
+    row-gap: 8px;
+  }
+  .pc-order-info { grid-area: info; }
+  .pc-order-total { grid-area: total; }
+  .pc-badge { grid-area: badge; justify-self: start; }
+  .pc-chevron { grid-area: chev; justify-self: end; }
+  .pc-thumb { width: 48px; height: 48px; flex-basis: 48px; }
+}

@@ -21,61 +21,102 @@ def _monto(valor) -> str:
     """Mercado Pago requires the amount to be a string with two decimal places."""
     return str(Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
-async def crear_orden(pedido_id: int, items: list[dict]) -> dict:
-    """
-    Crea una order de Checkout Pro y regresa {"id": ..., "checkout_url": ...}
-    Cada item: {"titulo": str, "cantidad": int, "precio": número}
-    """
-    frontend = os.getenv("FRONTEND_URL", "http://localhost:4321").rstrip("/")
+class MercadoPagoError(Exception):
+    """Mercado Pago rechazó la petición (datos inválidos, token mal, etc.)."""
 
+
+async def crear_orden_pago(
+    pedido_id: int,
+    items: list[dict],
+    *,
+    token: str,
+    payment_method_id: str,
+    payment_type: str,
+    installments: int,
+    email: str,
+    identification: dict | None = None,
+) -> dict:
+    """
+    Checkout API + Orders (modo automático): crea la order Y cobra en un solo paso.
+    `token` es el card token que genera el Card Payment Brick en el navegador
+    (de un solo uso). Cada item: {"titulo": str, "cantidad": int, "precio": número}.
+    Regresa el JSON de la order tal cual lo manda Mercado Pago.
+    """
     items_mp = []
     total = Decimal("0.00")
     for item in items:
         precio = Decimal(_monto(item["precio"]))
-        subtotal = precio * item["cantidad"]
-        total += subtotal
+        total += precio * item["cantidad"]
         items_mp.append({
             "title": item["titulo"],
             "unit_price": _monto(precio),
             "quantity": item["cantidad"],
         })
 
-    url_retorno = f"{frontend}/checkout/resultado"
-    config_online = {
-        "success_url": url_retorno,
-        "pending_url": url_retorno,
-        "failure_url": url_retorno,
-    }
-
-    #auto_return solo si el front es HTTPS
-    if frontend.startswith("https://"):
-        config_online["auto_return"] = "approved"
+    payer = {"email": email}
+    if identification and identification.get("type") and identification.get("number"):
+        payer["identification"] = {
+            "type": identification["type"],
+            "number": identification["number"],
+        }
 
     body = {
         "type": "online",
-        "processing_mode": "manual",
+        "processing_mode": "automatic",
         "total_amount": _monto(total),
         "external_reference": str(pedido_id),
-        "expiration_time": "PT30M",
+        "payer": payer,
         "items": items_mp,
-        "config": {"online": config_online},
+        "transactions": {
+            "payments": [{
+                "amount": _monto(total),
+                "payment_method": {
+                    "id": payment_method_id,
+                    "type": payment_type,
+                    "token": token,
+                    "installments": installments,
+                },
+            }]
+        },
     }
+
+    # Misma clave para el mismo pedido + mismo token: si el cliente reintenta
+    # por un timeout, MP no cobra dos veces.
+    llave = hashlib.sha256(f"{pedido_id}:{token}".encode()).hexdigest()
+    idempotency_key = str(uuid.UUID(llave[:32]))
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         respuesta = await client.post(
             f"{MP_API_URL}/v1/orders",
             json=body,
             headers={
+                "Content-Type": "application/json",
                 "Authorization": f"Bearer {_access_token()}",
-                "X-Idempotency-Key": str(uuid.uuid4()),
+                "X-Idempotency-Key": idempotency_key,
             },
         )
 
-    if respuesta.status_code not in (200, 201):
-        raise Exception (f"Mercado PAgo a rechazado la orden ({respuesta.status_code}): {respuesta.text}")
+    if respuesta.status_code in (200, 201):
+        return respuesta.json()
 
-    datos = respuesta.json()
-    return {"id": datos["id"], "checkout_url": datos["checkout_url"]}
+    try:
+        cuerpo = respuesta.json()
+    except ValueError:
+        cuerpo = {}
+
+    # 402 (u otro 4xx) con la order en "data" = el pago SÍ se procesó pero lo
+    # rechazaron (tarjeta/banco). Regresamos la order para que el pedido quede
+    # RECHAZADO, se devuelva el stock y el front muestre un mensaje bonito.
+    orden = cuerpo.get("data") if isinstance(cuerpo, dict) else None
+    if isinstance(orden, dict) and orden.get("status"):
+        return orden
+
+    # Error "de verdad" (datos mal, token vencido...): el detalle va a la
+    # terminal de uvicorn y al usuario solo le llega un mensaje corto.
+    print(f"[MercadoPago] Error {respuesta.status_code}: {respuesta.text}")
+    raise MercadoPagoError(
+        "No pudimos procesar el pago. Revisa los datos de tu tarjeta e intenta de nuevo."
+    )
 
 async def obtener_orden(order_id: str) -> dict:
     """Consulta a mercado pago el estado de una orden"""
@@ -100,7 +141,7 @@ def estado_pedido(orden: dict) -> str | None:
         return "PAGADO"
     if status == "failed":
         return "RECHAZADO"
-    if status == "canceled":
+    if status in ("canceled", "expired"):
         return "CANCELADO"
     return None
 
