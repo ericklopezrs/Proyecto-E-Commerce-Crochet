@@ -48,6 +48,7 @@ class Usuario:
     nombre: str
     email: str
     rol: RolUsuario
+    activo: bool
 
     @classmethod
     def from_orm(cls, obj: UsuarioModel) -> "Usuario":
@@ -56,6 +57,7 @@ class Usuario:
             nombre=obj.nombre,
             email=obj.email,
             rol=RolUsuario(obj.rol),
+            activo=obj.activo,
         )
 
 
@@ -216,6 +218,14 @@ def _validar_producto(nombre=None, precio=None, stock=None):
     if stock is not None and stock < 0:
         raise Exception("El stock no puede ser negativo")
 
+async def _cerrar_sesiones(session, usuario_id: int):
+    """Invalida todos los refresh tokens del usuario: tendrá que iniciar sesión de nuevo."""
+    await session.execute(
+        update(RefreshTokenModel)
+        .where(RefreshTokenModel.usuario_id == usuario_id)
+        .values(usado=True)
+    )
+
 @strawberry.type
 class Query:
     @strawberry.field(name="tipoCambio")
@@ -294,6 +304,14 @@ class Query:
             select(ProductoModel).order_by(ProductoModel.id)
         )
         return [Producto.from_orm(p) for p in result.scalars().all()]
+
+    @strawberry.field(name="usuariosAdmin")
+    async def usuarios_admin(self, info: strawberry.Info) -> list[Usuario]:
+        requerir_admin(info)
+        result = await info.context["session"].execute(
+            select(UsuarioModel).order_by(UsuarioModel.id)
+        )
+        return [Usuario.from_orm(u) for u in result.scalars().all()]
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
@@ -399,7 +417,6 @@ class Mutation:
         )
 
     @strawberry.mutation(name="crearProducto")
-    
     async def crear_producto(
         self, info: strawberry.Info, *,
         nombre: str,
@@ -438,7 +455,6 @@ class Mutation:
         descripcion: Optional[str] = None,
         categoria_id: Optional[strawberry.ID] = None,
         imagen: Optional[str] = None 
-        
     ) -> Producto:
 
         requerir_admin(info)
@@ -494,6 +510,44 @@ class Mutation:
         await session.commit()
         return Producto.from_orm(producto)
 
+    @strawberry.mutation(name="cambiarRolUsuario")
+    async def cambiar_rol_usuario(
+        self, info: strawberry.Info, id: strawberry.ID, rol: RolUsuario
+    ) -> Usuario:
+        requerir_admin(info)
+        session = info.context["session"]
+        yo = int(info.context["usuario"]["usuario_id"])
+        usuario = await session.get(UsuarioModel, int(id), with_for_update=True)
+        if usuario is None:
+            raise Exception(f"No existe el usuario {id}")
+        if usuario.id == yo:
+            raise Exception("No puedes cambiar tu propio rol")
+        nuevo = rol.value
+        if usuario.rol == nuevo:
+            return Usuario.from_orm(usuario)
+        usuario.rol = nuevo
+        await _cerrar_sesiones(session, usuario.id)
+        await session.commit()
+        return Usuario.from_orm(usuario)
+
+    @strawberry.mutation(name="cambiarEstadoUsuario")
+    async def cambiar_estado_usuario(
+        self, info: strawberry.Info, id: strawberry.ID, activo: bool
+    ) -> Usuario:
+        requerir_admin(info)
+        session = info.context["session"]
+        yo = int(info.context["usuario"]["usuario_id"])
+        usuario = await session.get(UsuarioModel, int(id), with_for_update=True)
+        if usuario is None:
+            raise Exception(f"No existe el usuario {id}")
+        if usuario.id == yo:
+            raise Exception("No puedes desactivar tu propia cuenta")
+        usuario.activo = activo
+        if not activo:
+            await _cerrar_sesiones(session, usuario.id)
+        await session.commit()
+        return Usuario.from_orm(usuario)
+
     @strawberry.mutation
     async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
         session = info.context["session"]
@@ -513,6 +567,9 @@ class Mutation:
 
         if not password_ok:
             raise Exception("Credenciales inválidas")
+
+        if not usuario.activo:
+            raise Exception("Tu cuenta está desactivada. Contacta a un administrador.")
 
         payload_datos = {
             "usuario_id": usuario.id,
@@ -595,6 +652,8 @@ class Mutation:
         usuario = await session.get(UsuarioModel, usuario_id)
         if usuario is None:
             raise Exception("Usuario no encontrado")
+        if not usuario.activo:
+            raise Exception("Tu cuenta está desactivada. Contacta a un administrador.")
 
         payload_datos = {
             "usuario_id": usuario.id,

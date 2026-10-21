@@ -49,7 +49,8 @@ class UsuarioModel(Base):
     rol: Mapped[str] = mapped_column(
         PG_ENUM("CLIENTE", "ADMIN", name="rol_usuario", create_type=False),
         server_default="CLIENTE",
-    )     
+    )
+    activo: Mapped[bool] = mapped_column(default=True, server_default=text("true"))  
 
 
 class DetallePedidoModel(Base):

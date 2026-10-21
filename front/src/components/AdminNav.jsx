@@ -1,6 +1,7 @@
 const ENLACES = [
   { id: 'dashboard', href: '/admin', icono: 'fa-chart-line', texto: 'Gráficas' },
   { id: 'productos', href: '/admin/productos', icono: 'fa-box-open', texto: 'Productos' },
+  { id: 'usuarios', href: '/admin/usuarios', icono: 'fa-users', texto: 'Usuarios' },
 ];
 
 export default function AdminNav({ activa }) {
