@@ -1,5 +1,5 @@
 const ENLACES = [
-  { id: 'dashboard', href: '/admin', icono: 'fa-chart-line', texto: 'Dashboard' },
+  { id: 'dashboard', href: '/admin', icono: 'fa-chart-line', texto: 'Gráficas' },
   { id: 'productos', href: '/admin/productos', icono: 'fa-box-open', texto: 'Productos' },
 ];
 

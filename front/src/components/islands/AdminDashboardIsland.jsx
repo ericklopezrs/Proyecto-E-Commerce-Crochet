@@ -153,7 +153,6 @@ export default function AdminDashboardIsland() {
     return (
       <div className="main-container">
         <main className="content">
-            <AdminNav activa="dashboard" />
           <div className="empty-cart" style={{ maxWidth: '480px', margin: '0 auto' }}>
             <Lock size={32} color="#64748b" />
             <p>Esta sección es solo para administradores.</p>
@@ -169,6 +168,7 @@ export default function AdminDashboardIsland() {
   return (
     <div className="main-container">
       <main className="content admin-content">
+        <AdminNav activa="dashboard" />
         <h3 className="section-title">
           <i className="fa-solid fa-chart-line" style={{ marginRight: '8px' }}></i>
           Panel de administración

@@ -3,8 +3,12 @@ import { Lock, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
   obtenerProductosAdmin,
+  obtenerCategorias,
+  crearProducto,
+  actualizarProducto,
   eliminarProducto,
   restaurarProducto,
+  subirImagen,
 } from '../../services/productos.js';
 import { showToast } from '../../utils/toast.js';
 import AdminNav from '../AdminNav.jsx';
@@ -18,24 +22,252 @@ const IMAGEN_RESPALDO =
       'fill="#94a3b8" font-family="sans-serif">Sin foto</text></svg>'
   );
 
+const TIPOS_OK = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_BYTES = 2 * 1024 * 1024;
+
 const mxn = (n) =>
   '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' MXN';
 
+// ====== FORMULARIO (crear y editar) ======
+function FormularioProducto({ producto, categorias, onCancelar, onGuardado }) {
+  const editando = Boolean(producto);
+
+  const [nombre, setNombre] = useState(producto?.nombre ?? '');
+  const [descripcion, setDescripcion] = useState(producto?.descripcion ?? '');
+  const [categoriaId, setCategoriaId] = useState(producto?.categoria?.id ?? '');
+  const [precio, setPrecio] = useState(producto ? String(producto.precio) : '');
+  const [stock, setStock] = useState(producto ? String(producto.stock) : '');
+  const [archivo, setArchivo] = useState(null);
+  const [previa, setPrevia] = useState(producto?.imagen ?? '');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
+
+  // Libera la vista previa local (blob) cuando se reemplaza o se cierra el formulario
+  useEffect(() => {
+    return () => {
+      if (previa.startsWith('blob:')) URL.revokeObjectURL(previa);
+    };
+  }, [previa]);
+
+  const elegirArchivo = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!TIPOS_OK.includes(f.type)) {
+      setError('La imagen debe ser JPG, PNG o WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (f.size > MAX_BYTES) {
+      setError('La imagen no puede pasar de 2 MB.');
+      e.target.value = '';
+      return;
+    }
+    setError('');
+    setArchivo(f);
+    setPrevia(URL.createObjectURL(f));
+  };
+
+  const validar = () => {
+    if (!nombre.trim()) return 'El nombre es obligatorio.';
+    if (nombre.trim().length > 100) return 'El nombre no puede pasar de 100 caracteres.';
+    if (!categoriaId) return 'Elige una categoría.';
+    const p = Number(precio);
+    if (precio === '' || !Number.isFinite(p) || p <= 0) return 'El precio debe ser mayor a 0.';
+    const s = Number(stock);
+    if (stock === '' || !Number.isInteger(s) || s < 0) {
+      return 'El stock debe ser un número entero de 0 o más.';
+    }
+    return '';
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const mensaje = validar();
+    if (mensaje) {
+      setError(mensaje);
+      return;
+    }
+
+    setError('');
+    setGuardando(true);
+    try {
+      let imagen;
+      if (archivo) imagen = await subirImagen(archivo);
+
+      const datos = {
+        nombre: nombre.trim(),
+        // Al editar, "" limpia la descripción; al crear, se omite si está vacía
+        descripcion: editando ? descripcion.trim() : descripcion.trim() || undefined,
+        precio: Number(precio),
+        stock: Number(stock),
+        categoriaId,
+        imagen,
+      };
+
+      const guardado = editando
+        ? await actualizarProducto(producto.id, datos)
+        : await crearProducto(datos);
+
+      onGuardado(guardado, editando);
+    } catch (err) {
+      setError(err.message);
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="adm-modal-fondo" onClick={() => !guardando && onCancelar()}>
+      <div
+        className="adm-modal adm-modal-ancho"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="adm-form-titulo"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h4 id="adm-form-titulo">{editando ? 'Editar producto' : 'Nuevo producto'}</h4>
+
+        <form className="adm-form" onSubmit={handleSubmit} noValidate>
+          <div className="adm-campo">
+            <label htmlFor="pf-nombre">Nombre</label>
+            <input
+              id="pf-nombre"
+              className="adm-input"
+              type="text"
+              maxLength={100}
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              disabled={guardando}
+            />
+          </div>
+
+          <div className="adm-campo">
+            <label htmlFor="pf-descripcion">Descripción</label>
+            <textarea
+              id="pf-descripcion"
+              className="adm-input"
+              rows={3}
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              disabled={guardando}
+            />
+          </div>
+
+          <div className="adm-campo">
+            <label htmlFor="pf-categoria">Categoría</label>
+            <select
+              id="pf-categoria"
+              className="adm-input"
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              disabled={guardando}
+            >
+              <option value="">Selecciona una categoría</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="adm-fila-campos">
+            <div className="adm-campo">
+              <label htmlFor="pf-precio">Precio (MXN)</label>
+              <input
+                id="pf-precio"
+                className="adm-input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
+                disabled={guardando}
+              />
+            </div>
+            <div className="adm-campo">
+              <label htmlFor="pf-stock">Stock</label>
+              <input
+                id="pf-stock"
+                className="adm-input"
+                type="number"
+                min="0"
+                step="1"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                disabled={guardando}
+              />
+            </div>
+          </div>
+
+          <div className="adm-campo">
+            <label htmlFor="pf-imagen">Imagen (JPG, PNG o WebP, máx. 2 MB)</label>
+            <div className="adm-imagen">
+              <img
+                className="adm-imagen-previa"
+                src={previa || IMAGEN_RESPALDO}
+                alt="Vista previa"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = IMAGEN_RESPALDO;
+                }}
+              />
+              <input
+                id="pf-imagen"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={elegirArchivo}
+                disabled={guardando}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="adm-form-error" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="adm-modal-acciones">
+            <button
+              type="button"
+              className="adm-btn-secundario"
+              onClick={onCancelar}
+              disabled={guardando}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="adm-btn-primario" disabled={guardando}>
+              {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear producto'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ====== PÁGINA ======
 export default function AdminProductosIsland() {
   const usuario = useAuthStore((s) => s.usuario);
   const esAdmin = usuario?.rol === 'ADMIN';
 
   const [productos, setProductos] = useState(null);
+  const [categorias, setCategorias] = useState([]);
   const [error, setError] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState('todos');
   const [porDesactivar, setPorDesactivar] = useState(null);
   const [trabajando, setTrabajando] = useState(null);
+  // null = cerrado, { producto: null } = crear, { producto } = editar
+  const [formulario, setFormulario] = useState(null);
 
   useEffect(() => {
     if (!esAdmin) return;
-    obtenerProductosAdmin()
-      .then(setProductos)
+    Promise.all([obtenerProductosAdmin(), obtenerCategorias()])
+      .then(([prods, cats]) => {
+        setProductos(prods);
+        setCategorias(cats);
+      })
       .catch((err) => setError(err.message));
   }, [esAdmin]);
 
@@ -72,6 +304,17 @@ export default function AdminProductosIsland() {
       setTrabajando(null);
       setPorDesactivar(null);
     }
+  };
+
+  const alGuardar = (guardado, editando) => {
+    setProductos((prev) =>
+      editando ? prev.map((p) => (p.id === guardado.id ? guardado : p)) : [...prev, guardado]
+    );
+    showToast(
+      editando ? `"${guardado.nombre}" actualizado` : `"${guardado.nombre}" creado`,
+      'success'
+    );
+    setFormulario(null);
   };
 
   if (!esAdmin) {
@@ -137,26 +380,36 @@ export default function AdminProductosIsland() {
                   </span>
                 </td>
                 <td className="adm-acciones">
-                  {p.activo ? (
+                  <div className="adm-acciones-fila">
                     <button
                       type="button"
-                      className="adm-btn-peligro-suave"
-                      onClick={() => setPorDesactivar(p)}
+                      className="adm-btn-secundario"
+                      onClick={() => setFormulario({ producto: p })}
                       disabled={trabajando === p.id}
                     >
-                      <i className="fa-solid fa-eye-slash"></i> Desactivar
+                      <i className="fa-solid fa-pen"></i> Editar
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="adm-btn-suave"
-                      onClick={() => cambiarEstado(p, true)}
-                      disabled={trabajando === p.id}
-                    >
-                      <i className="fa-solid fa-rotate-left"></i>{' '}
-                      {trabajando === p.id ? 'Restaurando...' : 'Restaurar'}
-                    </button>
-                  )}
+                    {p.activo ? (
+                      <button
+                        type="button"
+                        className="adm-btn-peligro-suave"
+                        onClick={() => setPorDesactivar(p)}
+                        disabled={trabajando === p.id}
+                      >
+                        <i className="fa-solid fa-eye-slash"></i> Desactivar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-suave"
+                        onClick={() => cambiarEstado(p, true)}
+                        disabled={trabajando === p.id}
+                      >
+                        <i className="fa-solid fa-rotate-left"></i>{' '}
+                        {trabajando === p.id ? 'Restaurando...' : 'Restaurar'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -192,10 +445,27 @@ export default function AdminProductosIsland() {
             <option value="activos">Solo activos</option>
             <option value="inactivos">Solo inactivos</option>
           </select>
+          <button
+            type="button"
+            className="adm-btn-primario"
+            onClick={() => setFormulario({ producto: null })}
+            disabled={productos === null}
+          >
+            <i className="fa-solid fa-plus"></i> Nuevo producto
+          </button>
         </div>
 
         {contenido}
       </main>
+
+      {formulario && (
+        <FormularioProducto
+          producto={formulario.producto}
+          categorias={categorias}
+          onCancelar={() => setFormulario(null)}
+          onGuardado={alGuardar}
+        />
+      )}
 
       {porDesactivar && (
         <div className="adm-modal-fondo" onClick={() => setPorDesactivar(null)}>

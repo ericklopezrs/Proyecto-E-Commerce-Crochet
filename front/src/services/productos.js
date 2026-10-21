@@ -115,3 +115,12 @@ export async function subirImagen(archivo) {
   if (!respuesta.ok) throw new Error(cuerpo.detail ?? 'No se pudo subir la imagen');
   return cuerpo.url;
 }
+
+export async function obtenerCategorias() {
+  const data = await fetchAuth(`
+    query Categorias {
+      categorias { id nombre }
+    }
+  `);
+  return data.categorias;
+}
