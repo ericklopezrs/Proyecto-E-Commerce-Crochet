@@ -1,0 +1,244 @@
+/* ===== Navegación de admin ===== */
+.adm-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.adm-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background-color: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #6d28d9;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.adm-nav-link:hover {
+  background-color: #ede9fe;
+}
+
+.adm-nav-link.activo {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+  color: #ffffff;
+}
+
+/* ===== Barra de búsqueda y filtro ===== */
+.adm-barra {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.adm-buscador {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 0 14px;
+  color: #64748b;
+}
+
+.adm-buscador:focus-within {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.adm-buscador input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px 0;
+  font-size: 14px;
+  background: transparent;
+}
+
+.adm-barra select {
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 10px 14px;
+  font-size: 14px;
+  background-color: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+/* ===== Tabla ===== */
+.adm-tabla-contenedor {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.adm-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.adm-tabla th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.adm-tabla td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.adm-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.adm-fila-inactiva {
+  opacity: 0.6;
+}
+
+.adm-producto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.adm-stock-bajo {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.adm-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adm-badge.activo {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.adm-badge.inactivo {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.adm-acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ===== Botones ===== */
+.adm-btn-suave,
+.adm-btn-peligro-suave,
+.adm-btn-secundario,
+.adm-btn-peligro {
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.adm-btn-suave {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.adm-btn-suave:hover:not(:disabled) {
+  background-color: #ddd6fe;
+}
+
+.adm-btn-peligro-suave {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.adm-btn-peligro-suave:hover:not(:disabled) {
+  background-color: #fee2e2;
+}
+
+.adm-btn-secundario {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.adm-btn-peligro {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.adm-btn-peligro:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.adm-btn-suave:disabled,
+.adm-btn-peligro-suave:disabled,
+.adm-btn-peligro:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Modal de confirmación ===== */
+.adm-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.adm-modal {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+}
+
+.adm-modal h4 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.adm-modal p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.adm-modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
