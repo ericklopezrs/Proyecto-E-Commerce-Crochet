@@ -125,7 +125,7 @@ class DetallePedido:
         )
 
     @strawberry.field
-    def producto(self) -> "Producto":
+    def producto(self) -> Optional["Producto"]:
         return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
 @strawberry.type
@@ -286,6 +286,14 @@ class Query:
     async def producto(self, info: strawberry.Info, id: strawberry.ID) -> Optional[Producto]:
         obj = await info.context["session"].get(ProductoModel, int(id))
         return Producto.from_orm(obj) if obj and obj.activo else None
+
+    @strawberry.field(name="productosAdmin")
+    async def productos_admin(self, info: strawberry.Info) -> list[Producto]:
+        requerir_admin(info)
+        result = await info.context["session"].execute(
+            select(ProductoModel).order_by(ProductoModel.id)
+        )
+        return [Producto.from_orm(p) for p in result.scalars().all()]
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
