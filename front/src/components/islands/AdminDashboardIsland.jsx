@@ -1,51 +1,17 @@
+import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import AdminNav from '../AdminNav.jsx';
+import { obtenerDashboardAdmin } from '../../services/dashboard.js';
 
-// ====== DATOS DE MENTIRA (solo para que las gráficas tengan algo que dibujar) ======
-const KPIS = [
-    { icono: 'fa-sack-dollar', etiqueta: 'Ventas del mes', valor: '$12,480', cambio: '+8%' },
-    { icono: 'fa-box-open', etiqueta: 'Pedidos', valor: '64', cambio: '+12%' },
-    { icono: 'fa-users', etiqueta: 'Clientes', valor: '41', cambio: '+5%' },
-    { icono: 'fa-heart', etiqueta: 'Peluches en catálogo', valor: '23', cambio: '' },
-];
-
-const VENTAS_POR_MES = [
-    { etiqueta: 'May', valor: 4200 },
-    { etiqueta: 'Jun', valor: 5100 },
-    { etiqueta: 'Jul', valor: 4700 },
-    { etiqueta: 'Ago', valor: 6900 },
-    { etiqueta: 'Sep', valor: 8300 },
-    { etiqueta: 'Oct', valor: 12480 },
-];
-
-const PEDIDOS_POR_DIA = [
-    { etiqueta: 'Lun', valor: 4 },
-    { etiqueta: 'Mar', valor: 7 },
-    { etiqueta: 'Mié', valor: 5 },
-    { etiqueta: 'Jue', valor: 9 },
-    { etiqueta: 'Vie', valor: 12 },
-    { etiqueta: 'Sáb', valor: 15 },
-    { etiqueta: 'Dom', valor: 8 },
-];
-
-// Los valores de la dona suman 100 (son porcentajes)
-const VENTAS_POR_CATEGORIA = [
-    { etiqueta: 'Animales', valor: 45, color: '#8b5cf6' },
-    { etiqueta: 'Superhéroes', valor: 30, color: '#baa2f3' },
-    { etiqueta: 'Personajes', valor: 15, color: '#f9a8d4' },
-    { etiqueta: 'Bebé', valor: 10, color: '#fcd34d' },
-];
+const fmtMXN = (n) =>
+  `$${new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }).format(n || 0)}`;
 
 // ====== GRÁFICA 1: BARRAS ======
 function GraficaBarras({ datos }) {
-  const ancho = 320;
-  const alto = 180;
-  const base = 150;      // la "línea del suelo" de las barras
-  const margen = 20;
-
-  const maximo = Math.max(...datos.map((d) => d.valor));
-  const paso = (ancho - margen * 2) / datos.length;
+  const ancho = 320, alto = 180, base = 150, margen = 20;
+  const maximo = Math.max(1, ...datos.map((d) => d.valor));
+  const paso = (ancho - margen * 2) / Math.max(1, datos.length);
   const anchoBarra = paso * 0.6;
 
   return (
@@ -55,7 +21,7 @@ function GraficaBarras({ datos }) {
         const h = (d.valor / maximo) * (base - 20);
         const x = margen + i * paso + (paso - anchoBarra) / 2;
         return (
-          <g key={d.etiqueta}>
+          <g key={`${d.etiqueta}-${i}`}>
             <rect x={x} y={base - h} width={anchoBarra} height={h} rx="4" fill="#8b5cf6" />
             <text x={x + anchoBarra / 2} y={base + 16} textAnchor="middle" className="admin-grafica-texto">
               {d.etiqueta}
@@ -69,13 +35,9 @@ function GraficaBarras({ datos }) {
 
 // ====== GRÁFICA 2: LÍNEA CON ÁREA ======
 function GraficaLinea({ datos }) {
-  const ancho = 320;
-  const alto = 180;
-  const base = 150;
-  const margen = 20;
-
-  const maximo = Math.max(...datos.map((d) => d.valor));
-  const paso = (ancho - margen * 2) / (datos.length - 1);
+  const ancho = 320, alto = 180, base = 150, margen = 20;
+  const maximo = Math.max(1, ...datos.map((d) => d.valor));
+  const paso = datos.length > 1 ? (ancho - margen * 2) / (datos.length - 1) : 0;
 
   const puntos = datos.map((d, i) => ({
     x: margen + i * paso,
@@ -84,7 +46,6 @@ function GraficaLinea({ datos }) {
   }));
 
   const linea = puntos.map((p) => `${p.x},${p.y}`).join(' ');
-  // El área es la misma línea + dos esquinas abajo para "cerrar" la figura
   const area = `${margen},${base} ${linea} ${margen + (datos.length - 1) * paso},${base}`;
 
   return (
@@ -92,8 +53,8 @@ function GraficaLinea({ datos }) {
       <line x1={margen} x2={ancho - margen} y1={base} y2={base} stroke="#cbd5e1" />
       <polygon points={area} fill="#baa2f3" opacity="0.35" />
       <polyline points={linea} fill="none" stroke="#8b5cf6" strokeWidth="3" strokeLinejoin="round" />
-      {puntos.map((p) => (
-        <g key={p.etiqueta}>
+      {puntos.map((p, i) => (
+        <g key={`${p.etiqueta}-${i}`}>
           <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" stroke="#8b5cf6" strokeWidth="2" />
           <text x={p.x} y={base + 16} textAnchor="middle" className="admin-grafica-texto">
             {p.etiqueta}
@@ -105,34 +66,26 @@ function GraficaLinea({ datos }) {
 }
 
 // ====== GRÁFICA 3: DONA ======
-// Truco: un círculo de radio 15.9155 mide casi exactamente 100 de perímetro,
-// así que "valor" se puede usar directo como porcentaje en strokeDasharray.
 function GraficaDona({ datos }) {
   let acumulado = 0;
-
   return (
     <div className="admin-dona-contenedor">
       <svg viewBox="0 0 42 42" className="admin-dona" role="img" aria-label="Ventas por categoría">
         <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#f1f5f9" strokeWidth="6" />
         {datos.map((d) => {
-          const desfase = 25 - acumulado; // 25 = empezar arriba (las 12 en punto)
+          const desfase = 25 - acumulado;
           acumulado += d.valor;
           return (
             <circle
               key={d.etiqueta}
-              cx="21"
-              cy="21"
-              r="15.9155"
-              fill="none"
-              stroke={d.color}
-              strokeWidth="6"
+              cx="21" cy="21" r="15.9155"
+              fill="none" stroke={d.color} strokeWidth="6"
               strokeDasharray={`${d.valor} ${100 - d.valor}`}
               strokeDashoffset={desfase}
             />
           );
         })}
       </svg>
-
       <ul className="admin-leyenda">
         {datos.map((d) => (
           <li key={d.etiqueta}>
@@ -148,8 +101,28 @@ function GraficaDona({ datos }) {
 // ====== PÁGINA ======
 export default function AdminDashboardIsland() {
   const usuario = useAuthStore((s) => s.usuario);
+  const esAdmin = usuario?.rol === 'ADMIN';
 
-  if (usuario?.rol !== 'ADMIN') {
+  const [datos, setDatos]       = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError]       = useState(null);
+
+  useEffect(() => {
+    if (!esAdmin) {
+      setCargando(false);
+      return;
+    }
+    let vigente = true;
+    setCargando(true);
+    setError(null);
+    obtenerDashboardAdmin()
+      .then((d) => { if (vigente) setDatos(d); })
+      .catch((e) => { if (vigente) setError(e.message || 'No se pudo cargar el panel'); })
+      .finally(() => { if (vigente) setCargando(false); });
+    return () => { vigente = false; };
+  }, [esAdmin]);
+
+  if (!esAdmin) {
     return (
       <div className="main-container">
         <main className="content">
@@ -165,6 +138,34 @@ export default function AdminDashboardIsland() {
     );
   }
 
+  // KPIs armados a partir de la respuesta del backend
+  const kpis = datos ? [
+    {
+      icono: 'fa-sack-dollar',
+      etiqueta: 'Ventas del mes',
+      valor: fmtMXN(datos.kpis.ventas_mes),
+      cambio: datos.kpis.cambio_ventas,
+    },
+    {
+      icono: 'fa-box-open',
+      etiqueta: 'Pedidos',
+      valor: String(datos.kpis.pedidos_mes),
+      cambio: datos.kpis.cambio_pedidos,
+    },
+    {
+      icono: 'fa-users',
+      etiqueta: 'Clientes',
+      valor: String(datos.kpis.clientes_total),
+      cambio: null,
+    },
+    {
+      icono: 'fa-heart',
+      etiqueta: 'Peluches en catálogo',
+      valor: String(datos.kpis.peluches_catalogo),
+      cambio: null,
+    },
+  ] : [];
+
   return (
     <div className="main-container">
       <main className="content admin-content">
@@ -173,37 +174,57 @@ export default function AdminDashboardIsland() {
           <i className="fa-solid fa-chart-line" style={{ marginRight: '8px' }}></i>
           Panel de administración
         </h3>
-        <p className="admin-aviso">Datos de ejemplo: las gráficas todavía no están conectadas a la base de datos.</p>
 
-        <section className="admin-kpis">
-          {KPIS.map((k) => (
-            <div key={k.etiqueta} className="admin-kpi">
-              <i className={`fa-solid ${k.icono} admin-kpi-icono`}></i>
-              <div>
-                <div className="admin-kpi-valor">{k.valor}</div>
-                <div className="admin-kpi-etiqueta">{k.etiqueta}</div>
+        {cargando && <p className="admin-aviso">Cargando datos…</p>}
+
+        {error && (
+          <p className="admin-aviso" style={{ color: '#dc2626' }}>
+            Error: {error}
+          </p>
+        )}
+
+        {datos && (
+          <>
+            <section className="admin-kpis">
+              {kpis.map((k) => (
+                <div key={k.etiqueta} className="admin-kpi">
+                  <i className={`fa-solid ${k.icono} admin-kpi-icono`}></i>
+                  <div>
+                    <div className="admin-kpi-valor">{k.valor}</div>
+                    <div className="admin-kpi-etiqueta">{k.etiqueta}</div>
+                  </div>
+                  {k.cambio != null && (
+                    <span
+                      className="admin-kpi-cambio"
+                      style={{ color: k.cambio >= 0 ? '#16a34a' : '#dc2626' }}
+                    >
+                      {k.cambio >= 0 ? '+' : ''}{k.cambio.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            <section className="admin-graficas">
+              <div className="cart-box">
+                <h4 className="admin-grafica-titulo">Ventas por mes (MXN)</h4>
+                <GraficaBarras datos={datos.ventas_por_mes} />
               </div>
-              {k.cambio && <span className="admin-kpi-cambio">{k.cambio}</span>}
-            </div>
-          ))}
-        </section>
 
-        <section className="admin-graficas">
-          <div className="cart-box">
-            <h4 className="admin-grafica-titulo">Ventas por mes (MXN)</h4>
-            <GraficaBarras datos={VENTAS_POR_MES} />
-          </div>
+              <div className="cart-box">
+                <h4 className="admin-grafica-titulo">Pedidos por día (últimos 7 días)</h4>
+                <GraficaLinea datos={datos.pedidos_por_dia} />
+              </div>
 
-          <div className="cart-box">
-            <h4 className="admin-grafica-titulo">Pedidos por día</h4>
-            <GraficaLinea datos={PEDIDOS_POR_DIA} />
-          </div>
-
-          <div className="cart-box admin-grafica-ancha">
-            <h4 className="admin-grafica-titulo">Ventas por categoría</h4>
-            <GraficaDona datos={VENTAS_POR_CATEGORIA} />
-          </div>
-        </section>
+              <div className="cart-box admin-grafica-ancha">
+                <h4 className="admin-grafica-titulo">Ventas por categoría (mes actual)</h4>
+                {datos.ventas_por_categoria.length > 0
+                  ? <GraficaDona datos={datos.ventas_por_categoria} />
+                  : <p className="admin-aviso">Sin ventas registradas este mes.</p>}
+              </div>
+            </section>
+          </>
+        )}
       </main>
     </div>
   );

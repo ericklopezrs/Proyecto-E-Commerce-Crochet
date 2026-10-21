@@ -3,6 +3,7 @@ import enum
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 from sqlalchemy.orm import selectinload
 
 from postali_service import buscar_cp
@@ -15,7 +16,7 @@ from email_service import enviar_confirmacion_pago
 import strawberry
 from email_validator import EmailNotValidError, validate_email
 from passlib.context import CryptContext
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, case, func, select, update
 from strawberry.schema.config import StrawberryConfig
 
 from auth import requerir_admin, requerir_usuario
@@ -34,6 +35,7 @@ from models import (
 )
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+TZ_MX = ZoneInfo("America/Mexico_City")
 
 
 @strawberry.enum
@@ -207,6 +209,38 @@ class DireccionCP:
     ciudad: Optional[str]
     colonias: list[str]
 
+
+@strawberry.type
+class KPIDashboard:
+    ventas_mes: float
+    pedidos_mes: int
+    clientes_total: int
+    peluches_catalogo: int
+    cambio_ventas: Optional[float] = None
+    cambio_pedidos: Optional[float] = None
+
+
+@strawberry.type
+class PuntoSerie:
+    etiqueta: str
+    valor: float
+
+
+@strawberry.type
+class PuntoCategoria:
+    etiqueta: str
+    valor: float
+    color: str
+
+
+@strawberry.type
+class DashboardAdmin:
+    kpis: KPIDashboard
+    ventas_por_mes: list[PuntoSerie]
+    pedidos_por_dia: list[PuntoSerie]
+    ventas_por_categoria: list[PuntoCategoria]
+
+
 def _validar_producto(nombre=None, precio=None, stock=None):
     if nombre is not None:
         if not nombre.strip():
@@ -218,6 +252,7 @@ def _validar_producto(nombre=None, precio=None, stock=None):
     if stock is not None and stock < 0:
         raise Exception("El stock no puede ser negativo")
 
+
 async def _cerrar_sesiones(session, usuario_id: int):
     """Invalida todos los refresh tokens del usuario: tendrá que iniciar sesión de nuevo."""
     await session.execute(
@@ -225,6 +260,36 @@ async def _cerrar_sesiones(session, usuario_id: int):
         .where(RefreshTokenModel.usuario_id == usuario_id)
         .values(usado=True)
     )
+
+
+def _meses_atras_utc(n: int) -> datetime:
+    """Inicio del mes n meses atrás, en hora de México, convertido a UTC."""
+    now_mx = datetime.now(TZ_MX)
+    anio, mes = now_mx.year, now_mx.month - n
+    while mes <= 0:
+        mes += 12
+        anio -= 1
+    return datetime(anio, mes, 1, tzinfo=TZ_MX).astimezone(timezone.utc)
+
+
+def _dias_atras_utc(n: int) -> datetime:
+    """Inicio del día n días atrás, en hora de México, convertido a UTC."""
+    now_mx = datetime.now(TZ_MX)
+    dia_mx = (now_mx - timedelta(days=n)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return dia_mx.astimezone(timezone.utc)
+
+
+def _cambio_pct(actual: float, anterior: float) -> Optional[float]:
+    """% de cambio vs. periodo anterior. None si no hay base de comparación."""
+    if anterior <= 0:
+        return None
+    return round((actual - anterior) / anterior * 100, 1)
+
+
+_MESES_ABREV = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+_DIAS_ABREV  = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+_PALETA_CAT  = ["#8b5cf6", "#baa2f3", "#f9a8d4", "#fcd34d", "#a7f3d0", "#93c5fd", "#fca5a5", "#86efac"]
+
 
 @strawberry.type
 class Query:
@@ -320,6 +385,154 @@ class Query:
             select(PedidoModel).order_by(PedidoModel.id)
         )
         return [Pedido.from_orm(p) for p in result.scalars().all()]
+
+    @strawberry.field(name="dashboardAdmin")
+    async def dashboard_admin(self, info: strawberry.Info) -> DashboardAdmin:
+        requerir_admin(info)
+        session = info.context["session"]
+        inicio_mes_actual   = _meses_atras_utc(0)
+        inicio_mes_anterior = _meses_atras_utc(1)
+        inicio_6_meses      = _meses_atras_utc(5)
+        inicio_7_dias       = _dias_atras_utc(6)
+
+        # ---- 1. KPIs del mes (y mes anterior para el %) ----
+        kpi_row = (await session.execute(
+            select(
+                func.coalesce(func.sum(case(
+                    (PedidoModel.fecha_pago >= inicio_mes_actual, PedidoModel.total),
+                    else_=0,
+                )), 0),
+                func.coalesce(func.sum(case(
+                    (and_(
+                        PedidoModel.fecha_pago >= inicio_mes_anterior,
+                        PedidoModel.fecha_pago <  inicio_mes_actual,
+                    ), PedidoModel.total),
+                    else_=0,
+                )), 0),
+                func.count(case((PedidoModel.fecha_pago >= inicio_mes_actual, 1))),
+                func.count(case((
+                    and_(
+                        PedidoModel.fecha_pago >= inicio_mes_anterior,
+                        PedidoModel.fecha_pago <  inicio_mes_actual,
+                    ), 1,
+                ))),
+            ).where(
+                PedidoModel.status == "PAGADO",
+                PedidoModel.fecha_pago >= inicio_mes_anterior,
+            )
+        )).one()
+        ventas_mes   = float(kpi_row[0] or 0)
+        ventas_ant   = float(kpi_row[1] or 0)
+        pedidos_mes  = int(kpi_row[2] or 0)
+        pedidos_ant  = int(kpi_row[3] or 0)
+        clientes_total = int((await session.execute(
+            select(func.count()).select_from(UsuarioModel)
+        )).scalar() or 0)
+        peluches = int((await session.execute(
+            select(func.count()).select_from(ProductoModel)
+            .where(ProductoModel.activo.is_(True))
+        )).scalar() or 0)
+        kpis = KPIDashboard(
+            ventas_mes=ventas_mes,
+            pedidos_mes=pedidos_mes,
+            clientes_total=clientes_total,
+            peluches_catalogo=peluches,
+            cambio_ventas=_cambio_pct(ventas_mes, ventas_ant),
+            cambio_pedidos=_cambio_pct(pedidos_mes, pedidos_ant),
+        )
+
+        # ---- 2. Ventas por mes (últimos 6 meses, TZ México) ----
+        filas_mes = (await session.execute(
+            select(
+                func.date_trunc(
+                    "month",
+                    func.timezone("America/Mexico_City", PedidoModel.fecha_pago),
+                ),
+                func.coalesce(func.sum(PedidoModel.total), 0),
+            )
+            .where(
+                PedidoModel.status == "PAGADO",
+                PedidoModel.fecha_pago >= inicio_6_meses,
+            )
+            .group_by(func.date_trunc(
+                "month",
+                func.timezone("America/Mexico_City", PedidoModel.fecha_pago),
+            ))
+        )).all()
+        mapa_mes = {(f[0].year, f[0].month): float(f[1]) for f in filas_mes if f[0]}
+        ventas_por_mes: list[PuntoSerie] = []
+        for i in range(5, -1, -1):
+            local = _meses_atras_utc(i).astimezone(TZ_MX)
+            clave = (local.year, local.month)
+            ventas_por_mes.append(PuntoSerie(
+                etiqueta=_MESES_ABREV[local.month - 1],
+                valor=mapa_mes.get(clave, 0.0),
+            ))
+
+        # ---- 3. Pedidos por día (últimos 7 días, TZ México) ----
+        filas_dia = (await session.execute(
+            select(
+                func.date(func.timezone("America/Mexico_City", PedidoModel.fecha_pago)),
+                func.count(),
+            )
+            .where(
+                PedidoModel.status == "PAGADO",
+                PedidoModel.fecha_pago >= inicio_7_dias,
+            )
+            .group_by(func.date(func.timezone("America/Mexico_City", PedidoModel.fecha_pago)))
+        )).all()
+        mapa_dia = {f[0]: int(f[1]) for f in filas_dia if f[0]}
+        pedidos_por_dia: list[PuntoSerie] = []
+        for i in range(6, -1, -1):
+            fecha = _dias_atras_utc(i).astimezone(TZ_MX)
+            etiqueta = _DIAS_ABREV[fecha.weekday()]
+            pedidos_por_dia.append(PuntoSerie(
+                etiqueta=etiqueta,
+                valor=float(mapa_dia.get(fecha.date(), 0)),
+            ))
+
+        # ---- 4. Ventas por categoría (mes actual) ----
+        filas_cat = (await session.execute(
+            select(
+                CategoriaModel.nombre,
+                func.coalesce(func.sum(
+                    DetallePedidoModel.cantidad * DetallePedidoModel.precio_unitario
+                ), 0),
+            )
+            .select_from(DetallePedidoModel)
+            .join(PedidoModel,    PedidoModel.id    == DetallePedidoModel.pedido_id)
+            .join(ProductoModel,  ProductoModel.id  == DetallePedidoModel.producto_id)
+            .join(CategoriaModel, CategoriaModel.id == ProductoModel.categoria_id)
+            .where(
+                PedidoModel.status == "PAGADO",
+                PedidoModel.fecha_pago >= inicio_mes_actual,
+            )
+            .group_by(CategoriaModel.id, CategoriaModel.nombre)
+            .order_by(func.sum(
+                DetallePedidoModel.cantidad * DetallePedidoModel.precio_unitario
+            ).desc())
+        )).all()
+        total_cat = sum(float(f[1] or 0) for f in filas_cat)
+        ventas_por_categoria: list[PuntoCategoria] = []
+        if total_cat > 0 and filas_cat:
+            pcts: list[float] = []
+            for fila in filas_cat:
+                pcts.append(round(float(fila[1]) / total_cat * 100, 1))
+            # ajuste para que sumen 100 exactos y el SVG no quede con hueco
+            pcts[-1] = round(100 - sum(pcts[:-1]), 1)
+            for i, (fila, pct) in enumerate(zip(filas_cat, pcts)):
+                ventas_por_categoria.append(PuntoCategoria(
+                    etiqueta=fila[0],
+                    valor=pct,
+                    color=_PALETA_CAT[i % len(_PALETA_CAT)],
+                ))
+
+        return DashboardAdmin(
+            kpis=kpis,
+            ventas_por_mes=ventas_por_mes,
+            pedidos_por_dia=pedidos_por_dia,
+            ventas_por_categoria=ventas_por_categoria,
+        )
 
 
 @strawberry.type
