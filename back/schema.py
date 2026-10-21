@@ -86,10 +86,11 @@ class Producto:
             imagen=obj.imagen,
             _orm=obj,
         )
-        
+
     @strawberry.field
     def categoria(self) -> Optional["Categoria"]:
         return Categoria.from_orm(self._orm.categoria) if self._orm.categoria else None
+
 
 @strawberry.type
 class Categoria:
@@ -132,6 +133,7 @@ class DetallePedido:
     def producto(self) -> Optional["Producto"]:
         return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
+
 @strawberry.type
 class Pedido:
     id: strawberry.ID
@@ -160,7 +162,6 @@ class Pedido:
     @strawberry.field
     def detalles(self) -> list["DetallePedido"]:
         return [DetallePedido.from_orm(d) for d in self._orm.detalles]
-        
 
 
 @strawberry.input
@@ -189,6 +190,7 @@ class AuthPayload:
     refresh_token: str
     usuario: Usuario
 
+
 @strawberry.type
 class PagoPayload:
     pedido_status: str          # PENDIENTE / PAGADO / RECHAZADO / CANCELADO
@@ -196,10 +198,12 @@ class PagoPayload:
     mp_status: Optional[str] = None
     mp_status_detail: Optional[str] = None
 
+
 @strawberry.type
 class RefreshPayload:
     access_token: str
     refresh_token: str
+
 
 @strawberry.type
 class DireccionCP:
@@ -319,8 +323,7 @@ class Query:
             .where(PedidoModel.usuario_id == int(usuario_token["usuario_id"]))
             .order_by(PedidoModel.fecha.desc(), PedidoModel.id.desc())
         )
-        return [Pedido.from_orm(p) for p in result.scalars().all()]    
-
+        return [Pedido.from_orm(p) for p in result.scalars().all()]
 
     @strawberry.field
     async def categorias(self, info: strawberry.Info) -> list[Categoria]:
@@ -442,22 +445,21 @@ class Query:
         )
 
         # ---- 2. Ventas por mes (últimos 6 meses, TZ México) ----
+        # Una sola expresión reusada en select y group_by (evita el GroupingError de Postgres)
+        expr_mes = func.date_trunc(
+            "month",
+            func.timezone("America/Mexico_City", PedidoModel.fecha_pago),
+        )
         filas_mes = (await session.execute(
             select(
-                func.date_trunc(
-                    "month",
-                    func.timezone("America/Mexico_City", PedidoModel.fecha_pago),
-                ),
+                expr_mes,
                 func.coalesce(func.sum(PedidoModel.total), 0),
             )
             .where(
                 PedidoModel.status == "PAGADO",
                 PedidoModel.fecha_pago >= inicio_6_meses,
             )
-            .group_by(func.date_trunc(
-                "month",
-                func.timezone("America/Mexico_City", PedidoModel.fecha_pago),
-            ))
+            .group_by(expr_mes)
         )).all()
         mapa_mes = {(f[0].year, f[0].month): float(f[1]) for f in filas_mes if f[0]}
         ventas_por_mes: list[PuntoSerie] = []
@@ -470,16 +472,17 @@ class Query:
             ))
 
         # ---- 3. Pedidos por día (últimos 7 días, TZ México) ----
+        # Misma expresión reusada en select y group_by
+        expr_dia = func.date(
+            func.timezone("America/Mexico_City", PedidoModel.fecha_pago)
+        )
         filas_dia = (await session.execute(
-            select(
-                func.date(func.timezone("America/Mexico_City", PedidoModel.fecha_pago)),
-                func.count(),
-            )
+            select(expr_dia, func.count())
             .where(
                 PedidoModel.status == "PAGADO",
                 PedidoModel.fecha_pago >= inicio_7_dias,
             )
-            .group_by(func.date(func.timezone("America/Mexico_City", PedidoModel.fecha_pago)))
+            .group_by(expr_dia)
         )).all()
         mapa_dia = {f[0]: int(f[1]) for f in filas_dia if f[0]}
         pedidos_por_dia: list[PuntoSerie] = []
@@ -492,12 +495,14 @@ class Query:
             ))
 
         # ---- 4. Ventas por categoría (mes actual) ----
+        # Misma expresión reusada en select y order_by
+        expr_total_cat = func.sum(
+            DetallePedidoModel.cantidad * DetallePedidoModel.precio_unitario
+        )
         filas_cat = (await session.execute(
             select(
                 CategoriaModel.nombre,
-                func.coalesce(func.sum(
-                    DetallePedidoModel.cantidad * DetallePedidoModel.precio_unitario
-                ), 0),
+                func.coalesce(expr_total_cat, 0),
             )
             .select_from(DetallePedidoModel)
             .join(PedidoModel,    PedidoModel.id    == DetallePedidoModel.pedido_id)
@@ -508,9 +513,7 @@ class Query:
                 PedidoModel.fecha_pago >= inicio_mes_actual,
             )
             .group_by(CategoriaModel.id, CategoriaModel.nombre)
-            .order_by(func.sum(
-                DetallePedidoModel.cantidad * DetallePedidoModel.precio_unitario
-            ).desc())
+            .order_by(expr_total_cat.desc())
         )).all()
         total_cat = sum(float(f[1] or 0) for f in filas_cat)
         ventas_por_categoria: list[PuntoCategoria] = []
@@ -667,7 +670,7 @@ class Mutation:
         stock: Optional[int] = None,
         descripcion: Optional[str] = None,
         categoria_id: Optional[strawberry.ID] = None,
-        imagen: Optional[str] = None 
+        imagen: Optional[str] = None
     ) -> Producto:
 
         requerir_admin(info)
@@ -709,7 +712,7 @@ class Mutation:
         producto.activo = False
         await session.commit()
         return True
-    
+
     @strawberry.mutation(name="restaurarProducto")
     async def restaurar_producto(self, info: strawberry.Info, id: strawberry.ID) -> Producto:
         requerir_admin(info)
@@ -924,7 +927,7 @@ class Mutation:
             direccion_envio=direccion_envio,
         )
         session.add(pedido)
-        await session.flush()   #  asegura que el pedido ya tenga id
+        await session.flush()   # asegura que el pedido ya tenga id
 
         total_servidor = Decimal("0")
         for item in items:
@@ -946,7 +949,6 @@ class Mutation:
                 cantidad=item.cantidad,
                 precio_unitario=producto.precio,
             ))
-
 
         pedido.total = total_servidor
         await session.commit()
