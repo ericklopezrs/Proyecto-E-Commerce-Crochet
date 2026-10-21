@@ -49,7 +49,8 @@ class UsuarioModel(Base):
     rol: Mapped[str] = mapped_column(
         PG_ENUM("CLIENTE", "ADMIN", name="rol_usuario", create_type=False),
         server_default="CLIENTE",
-    )     
+    )
+    activo: Mapped[bool] = mapped_column(default=True, server_default=text("true"))  
 
 
 class DetallePedidoModel(Base):
@@ -77,7 +78,8 @@ class PedidoModel(Base):
     mp_checkout_url: Mapped[Optional[str]] = mapped_column(Text)
     fecha_pago: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     expira_en: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-
+    direccion_envio: Mapped[Optional[str]] = mapped_column(Text)
+    
     usuario: Mapped[Optional["UsuarioModel"]] = relationship(lazy="selectin")
     detalles: Mapped[list["DetallePedidoModel"]] = relationship(
         back_populates="pedido", lazy="selectin"

@@ -7,10 +7,17 @@ import {
   pagarPedido,
   obtenerMiPedido,
 } from '../../services/pedidos.js';
+import { buscarPorCP } from '../../services/direccion.js';
+import PrecioUSD from '../PrecioUSD.jsx';
 import '../../styles/pedidos.css';
 
 const PUBLIC_KEY = import.meta.env.PUBLIC_MP_PUBLIC_KEY;
 const BRICK_ID = 'cardPaymentBrick_container';
+
+const campo = {
+  width: '100%', padding: '10px', border: '1px solid #cbd5e1',
+  borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+};
 
 function cargarSdkMP() {
   if (window.MercadoPago) return Promise.resolve();
@@ -139,6 +146,28 @@ export default function CheckoutIsland() {
   const [brickListo, setBrickListo] = useState(false);
   const [resultado, setResultado] = useState(null); // { estado, total, motivo }
 
+  // ---------- dirección de envío (solo para pedidos nuevos) ----------
+  const [dir, setDir] = useState({ cp: '', colonia: '', calle: '' });
+  const [zona, setZona] = useState(null);
+  const [errorCP, setErrorCP] = useState('');
+
+  const handleCP = async (valor) => {
+    const cp = valor.replace(/\D/g, '').slice(0, 5);
+    setDir((d) => ({ ...d, cp, colonia: '' }));
+    setZona(null);
+    setErrorCP('');
+    if (cp.length !== 5) return;
+    try {
+      const info = await buscarPorCP(cp);
+      setZona(info);
+      setDir((d) => ({ ...d, colonia: info.colonias[0] ?? '' }));
+    } catch (err) {
+      setErrorCP(err.message);
+    }
+  };
+
+  const direccionLista = Boolean(zona && dir.colonia && dir.calle.trim().length >= 5);
+
   // ?pedido=ID  -> pagar un pedido que ya existía (botón "Pagar ahora" de Mis pedidos)
   const [pedidoParam, setPedidoParam] = useState(null);
   const [pedidoExistente, setPedidoExistente] = useState(null);
@@ -195,6 +224,14 @@ export default function CheckoutIsland() {
   // ---------- lo que pasa al darle "Pagar" en el Brick ----------
   submitRef.current = async (formData) => {
     setErrorPedido('');
+
+    // Un pedido nuevo necesita dirección antes de cobrar
+    if (!usandoPedido && !pedidoIdRef.current && !direccionLista) {
+      const msg = 'Completa tu dirección de envío antes de pagar.';
+      setErrorPedido(msg);
+      throw new Error(msg); // el Brick vuelve a habilitar el botón
+    }
+
     try {
       let pedidoId = usandoPedido ? pedidoExistente.id : pedidoIdRef.current;
 
@@ -209,6 +246,7 @@ export default function CheckoutIsland() {
           usuarioId: usuario.id,
           total: parseFloat(getTotal()),
           items,
+          direccion: `${dir.calle.trim()}, ${dir.colonia}, CP ${dir.cp}, ${zona.municipio}, ${zona.estado}`,
         });
         pedidoId = pedido.id;
         pedidoIdRef.current = pedidoId;
@@ -461,7 +499,49 @@ export default function CheckoutIsland() {
           <span>Total a pagar</span>
           <strong>{mxn(total)}</strong>
         </div>
+        <div style={{ textAlign: 'right', color: '#64748b', fontSize: '14px' }}>
+          <PrecioUSD mxn={total} />
+        </div>
       </section>
+
+      {!usandoPedido && (
+        <section className="pc-card">
+          <h4 className="pc-card-title">
+            <i className="fa-solid fa-truck"></i>
+            Dirección de envío
+          </h4>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <input
+              style={campo}
+              inputMode="numeric"
+              placeholder="Código postal (5 dígitos)"
+              value={dir.cp}
+              onChange={(e) => handleCP(e.target.value)}
+            />
+            {errorCP && <small style={{ color: '#dc2626' }}>{errorCP}</small>}
+            {zona && (
+              <>
+                <input style={campo} value={`${zona.municipio}, ${zona.estado}`} readOnly />
+                <select
+                  style={campo}
+                  value={dir.colonia}
+                  onChange={(e) => setDir({ ...dir, colonia: e.target.value })}
+                >
+                  {zona.colonias.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            <input
+              style={campo}
+              placeholder="Calle y número"
+              value={dir.calle}
+              onChange={(e) => setDir({ ...dir, calle: e.target.value })}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="pc-card">
         <h4 className="pc-card-title">
@@ -474,6 +554,12 @@ export default function CheckoutIsland() {
             <CircleAlert size={18} style={{ flexShrink: 0 }} />
             <span>{errorPedido}</span>
           </div>
+        )}
+
+        {!usandoPedido && !direccionLista && (
+          <p className="pc-muted" style={{ marginTop: 0 }}>
+            Completa tu dirección de envío para poder pagar.
+          </p>
         )}
 
         {!brickListo && <p className="pc-muted">Cargando formulario de pago...</p>}

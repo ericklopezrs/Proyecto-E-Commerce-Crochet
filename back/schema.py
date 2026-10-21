@@ -1,11 +1,16 @@
+import asyncio
 import enum
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import selectinload
 
+from postali_service import buscar_cp
+from divisas_service import obtener_tasa
+
 from decimal import Decimal
 from mercadoPago_client import MercadoPagoError, crear_orden_pago, estado_pedido
+from email_service import enviar_confirmacion_pago
 
 import strawberry
 from email_validator import EmailNotValidError, validate_email
@@ -43,6 +48,7 @@ class Usuario:
     nombre: str
     email: str
     rol: RolUsuario
+    activo: bool
 
     @classmethod
     def from_orm(cls, obj: UsuarioModel) -> "Usuario":
@@ -51,6 +57,7 @@ class Usuario:
             nombre=obj.nombre,
             email=obj.email,
             rol=RolUsuario(obj.rol),
+            activo=obj.activo,
         )
 
 
@@ -120,7 +127,7 @@ class DetallePedido:
         )
 
     @strawberry.field
-    def producto(self) -> "Producto":
+    def producto(self) -> Optional["Producto"]:
         return Producto.from_orm(self._orm.producto) if self._orm.producto else None
 
 @strawberry.type
@@ -192,6 +199,14 @@ class RefreshPayload:
     access_token: str
     refresh_token: str
 
+@strawberry.type
+class DireccionCP:
+    cp: str
+    estado: str
+    municipio: str
+    ciudad: Optional[str]
+    colonias: list[str]
+
 def _validar_producto(nombre=None, precio=None, stock=None):
     if nombre is not None:
         if not nombre.strip():
@@ -203,8 +218,24 @@ def _validar_producto(nombre=None, precio=None, stock=None):
     if stock is not None and stock < 0:
         raise Exception("El stock no puede ser negativo")
 
+async def _cerrar_sesiones(session, usuario_id: int):
+    """Invalida todos los refresh tokens del usuario: tendrá que iniciar sesión de nuevo."""
+    await session.execute(
+        update(RefreshTokenModel)
+        .where(RefreshTokenModel.usuario_id == usuario_id)
+        .values(usado=True)
+    )
+
 @strawberry.type
 class Query:
+    @strawberry.field(name="tipoCambio")
+    async def tipo_cambio(self, moneda: str = "USD") -> float:
+        return await obtener_tasa(moneda)
+
+    @strawberry.field(name="direccionPorCP")
+    async def direccion_por_cp(self, cp: str) -> DireccionCP:
+        return DireccionCP(**(await buscar_cp(cp)))
+
     @strawberry.field(name="miPedido")
     async def mi_pedido(
         self, info: strawberry.Info, id: strawberry.ID
@@ -265,6 +296,22 @@ class Query:
     async def producto(self, info: strawberry.Info, id: strawberry.ID) -> Optional[Producto]:
         obj = await info.context["session"].get(ProductoModel, int(id))
         return Producto.from_orm(obj) if obj and obj.activo else None
+
+    @strawberry.field(name="productosAdmin")
+    async def productos_admin(self, info: strawberry.Info) -> list[Producto]:
+        requerir_admin(info)
+        result = await info.context["session"].execute(
+            select(ProductoModel).order_by(ProductoModel.id)
+        )
+        return [Producto.from_orm(p) for p in result.scalars().all()]
+
+    @strawberry.field(name="usuariosAdmin")
+    async def usuarios_admin(self, info: strawberry.Info) -> list[Usuario]:
+        requerir_admin(info)
+        result = await info.context["session"].execute(
+            select(UsuarioModel).order_by(UsuarioModel.id)
+        )
+        return [Usuario.from_orm(u) for u in result.scalars().all()]
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
@@ -340,7 +387,26 @@ class Mutation:
                     )
                     producto.stock += detalle.cantidad
 
+        # Datos del correo antes del commit (después la sesión ya los expiró)
+        correo = None
+        if pedido.status == "PAGADO" and pedido.usuario:
+            correo = {
+                "para": pedido.usuario.email,
+                "nombre": pedido.usuario.nombre,
+                "pedido_id": pedido.id,
+                "lineas": [
+                    (d.producto.nombre, d.cantidad, float(d.precio_unitario))
+                    for d in pedido.detalles
+                ],
+                "total": float(pedido.total),
+                "direccion": pedido.direccion_envio,
+            }
+
         await session.commit()
+
+        if correo:
+            # En segundo plano: el cliente no espera a Brevo para ver "Pago aprobado"
+            asyncio.create_task(enviar_confirmacion_pago(**correo))
 
         pago = (orden.get("transactions", {}).get("payments") or [{}])[0]
         return PagoPayload(
@@ -351,7 +417,6 @@ class Mutation:
         )
 
     @strawberry.mutation(name="crearProducto")
-    
     async def crear_producto(
         self, info: strawberry.Info, *,
         nombre: str,
@@ -390,7 +455,6 @@ class Mutation:
         descripcion: Optional[str] = None,
         categoria_id: Optional[strawberry.ID] = None,
         imagen: Optional[str] = None 
-        
     ) -> Producto:
 
         requerir_admin(info)
@@ -446,6 +510,44 @@ class Mutation:
         await session.commit()
         return Producto.from_orm(producto)
 
+    @strawberry.mutation(name="cambiarRolUsuario")
+    async def cambiar_rol_usuario(
+        self, info: strawberry.Info, id: strawberry.ID, rol: RolUsuario
+    ) -> Usuario:
+        requerir_admin(info)
+        session = info.context["session"]
+        yo = int(info.context["usuario"]["usuario_id"])
+        usuario = await session.get(UsuarioModel, int(id), with_for_update=True)
+        if usuario is None:
+            raise Exception(f"No existe el usuario {id}")
+        if usuario.id == yo:
+            raise Exception("No puedes cambiar tu propio rol")
+        nuevo = rol.value
+        if usuario.rol == nuevo:
+            return Usuario.from_orm(usuario)
+        usuario.rol = nuevo
+        await _cerrar_sesiones(session, usuario.id)
+        await session.commit()
+        return Usuario.from_orm(usuario)
+
+    @strawberry.mutation(name="cambiarEstadoUsuario")
+    async def cambiar_estado_usuario(
+        self, info: strawberry.Info, id: strawberry.ID, activo: bool
+    ) -> Usuario:
+        requerir_admin(info)
+        session = info.context["session"]
+        yo = int(info.context["usuario"]["usuario_id"])
+        usuario = await session.get(UsuarioModel, int(id), with_for_update=True)
+        if usuario is None:
+            raise Exception(f"No existe el usuario {id}")
+        if usuario.id == yo:
+            raise Exception("No puedes desactivar tu propia cuenta")
+        usuario.activo = activo
+        if not activo:
+            await _cerrar_sesiones(session, usuario.id)
+        await session.commit()
+        return Usuario.from_orm(usuario)
+
     @strawberry.mutation
     async def login(self, info: strawberry.Info, datos: LoginInput) -> AuthPayload:
         session = info.context["session"]
@@ -465,6 +567,9 @@ class Mutation:
 
         if not password_ok:
             raise Exception("Credenciales inválidas")
+
+        if not usuario.activo:
+            raise Exception("Tu cuenta está desactivada. Contacta a un administrador.")
 
         payload_datos = {
             "usuario_id": usuario.id,
@@ -547,6 +652,8 @@ class Mutation:
         usuario = await session.get(UsuarioModel, usuario_id)
         if usuario is None:
             raise Exception("Usuario no encontrado")
+        if not usuario.activo:
+            raise Exception("Tu cuenta está desactivada. Contacta a un administrador.")
 
         payload_datos = {
             "usuario_id": usuario.id,
@@ -591,6 +698,7 @@ class Mutation:
         usuario_id: strawberry.ID,
         total: float,
         items: list[ItemPedidoInput],
+        direccion_envio: Optional[str] = None,
     ) -> Pedido:
         session = info.context["session"]
         usuario = requerir_usuario(info)
@@ -600,6 +708,7 @@ class Mutation:
             total=0,
             status="PENDIENTE",
             fecha=func.now(),
+            direccion_envio=direccion_envio,
         )
         session.add(pedido)
         await session.flush()   #  asegura que el pedido ya tenga id
@@ -638,4 +747,3 @@ schema = strawberry.Schema(
     mutation=Mutation,
     config=StrawberryConfig(auto_camel_case=False),
 )
-

@@ -96,3 +96,154 @@
 @media (max-width: 700px) {
   .admin-graficas { grid-template-columns: 1fr; }
 }
+
+/* ===== Botón principal y acciones de fila ===== */
+.adm-btn-primario {
+  background-color: #8b5cf6;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.adm-btn-primario:hover:not(:disabled) {
+  background-color: #7c3aed;
+}
+
+.adm-btn-primario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.adm-barra .adm-btn-primario {
+  margin-left: auto;
+}
+
+.adm-acciones-fila {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* ===== Formulario ===== */
+.adm-modal-ancho {
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.adm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.adm-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adm-campo label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.adm-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.adm-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.adm-input:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+}
+
+textarea.adm-input {
+  resize: vertical;
+}
+
+.adm-fila-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.adm-imagen {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.adm-imagen-previa {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  flex-shrink: 0;
+}
+
+.adm-form-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .adm-fila-campos {
+    grid-template-columns: 1fr;
+  }
+  .adm-barra .adm-btn-primario {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ===== Usuarios ===== */
+.adm-badge.rol-admin {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.adm-badge.rol-cliente {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.adm-tu {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.adm-barra select:not(:last-of-type) {
+  margin-right: 0;
+}
