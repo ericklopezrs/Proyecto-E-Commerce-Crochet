@@ -23,18 +23,74 @@ function cargarSdkMP() {
   });
 }
 
-// Mensajes amigables para los status_detail más comunes de rechazo.
+
+// status_detail que manda Mercado Pago cuando el pago falla.
+// Algunos códigos no vienen en la documentación de Orders, así que también
+// incluimos los nombres viejos (cc_rejected_*) por si llegan así.
 const MOTIVOS = {
-  rejected_by_issuer: 'Tu banco rechazó el pago. Prueba con otra tarjeta.',
-  failed: 'El pago no pasó. Prueba con otra tarjeta.',
+  // OTHE – error general
+  rejected_by_issuer: 'Tu banco rechazó el pago. Intenta con otra tarjeta.',
+  cc_rejected_other_reason: 'Tu banco rechazó el pago. Intenta con otra tarjeta.',
+
+  // FUND – fondos insuficientes
+  insufficient_amount: 'La tarjeta no tiene fondos suficientes.',
+  card_insufficient_amount: 'La tarjeta no tiene fondos suficientes.',
   cc_rejected_insufficient_amount: 'La tarjeta no tiene fondos suficientes.',
+
+  // SECU / EXPI / FORM / CARD – datos de la tarjeta
+  bad_filled_card_data: 'Revisa los datos de tu tarjeta: número, fecha de vencimiento o código de seguridad.',
   cc_rejected_bad_filled_security_code: 'El código de seguridad es incorrecto.',
   cc_rejected_bad_filled_date: 'La fecha de vencimiento es incorrecta.',
-  cc_rejected_bad_filled_other: 'Revisa los datos de la tarjeta.',
-  cc_rejected_call_for_authorize: 'Tu banco necesita autorizar el pago; llámales y vuelve a intentar.',
-  cc_rejected_card_disabled: 'La tarjeta está deshabilitada.',
-  cc_rejected_duplicated_payment: 'Ya hiciste un pago igual hace poco.',
-  cc_rejected_max_attempts: 'Superaste el máximo de intentos.',
+  cc_rejected_bad_filled_other: 'Hay un error en los datos de la tarjeta. Revísalos.',
+  cc_rejected_bad_filled_card_number: 'Falta el número de tarjeta o es incorrecto.',
+
+  // CALL – autorizar con el banco
+  required_call_for_authorize: 'Tu banco necesita que autorices este pago. Llámales y vuelve a intentarlo.',
+  cc_rejected_call_for_authorize: 'Tu banco necesita que autorices este pago. Llámales y vuelve a intentarlo.',
+
+  // INST – cuotas inválidas
+  invalid_installments: 'Tu tarjeta no acepta esa cantidad de pagos.',
+  cc_rejected_invalid_installments: 'Tu tarjeta no acepta esa cantidad de pagos.',
+
+  // DUPL – pago duplicado
+  duplicated_payment: 'Ya hiciste un pago igual hace un momento. Revisa “Mis pedidos” antes de reintentar.',
+  cc_rejected_duplicated_payment: 'Ya hiciste un pago igual hace un momento. Revisa “Mis pedidos” antes de reintentar.',
+
+  // LOCK – tarjeta deshabilitada
+  card_disabled: 'Tu tarjeta está bloqueada o desactivada. Usa otra tarjeta.',
+  cc_rejected_card_disabled: 'Tu tarjeta está bloqueada o desactivada. Usa otra tarjeta.',
+
+  // CTNA – tipo de tarjeta no permitido
+  card_type_not_allowed: 'Ese tipo de tarjeta no se acepta. Intenta con otra.',
+  cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no se acepta. Intenta con otra.',
+
+  // ATTE – intentos de PIN excedidos
+  max_attempts_exceeded: 'Superaste el número máximo de intentos. Intenta más tarde o con otra tarjeta.',
+  cc_rejected_max_attempts: 'Superaste el número máximo de intentos. Intenta más tarde o con otra tarjeta.',
+
+  // BLAC – lista negra / fraude
+  high_risk: 'El pago fue rechazado por seguridad. Intenta con otro medio de pago.',
+  cc_rejected_blacklist: 'El pago fue rechazado por seguridad. Intenta con otro medio de pago.',
+  cc_rejected_high_risk: 'El pago fue rechazado por seguridad. Intenta con otro medio de pago.',
+
+  // UNSU – no soportado
+  unsupported: 'Este medio de pago no está disponible. Intenta con otro.',
+  cc_rejected_unsupported: 'Este medio de pago no está disponible. Intenta con otro.',
+
+  // Otros que vienen en la documentación de Orders
+  amount_limit_exceeded: 'El monto supera el límite permitido de tu tarjeta.',
+  invalid_card_token: 'Los datos de la tarjeta expiraron. Vuelve a capturarlos.',
+  processing_error: 'Hubo un error al procesar el pago. Intenta de nuevo en unos minutos.',
+  '3ds_challenge_expired': 'Se acabó el tiempo para validar el pago con tu banco.',
+  expired: 'El pago expiró antes de completarse.',
+  canceled: 'El pago fue cancelado.',
+};
+
+// status_detail cuando el pago queda en revisión (CONT)
+const MOTIVOS_PENDIENTE = {
+  in_process: 'Tu pago se está procesando.',
+  pending_review_manual: 'Tu pago está en revisión manual.',
+  in_review: 'Tu pago está en revisión de seguridad.',
 };
 
 const mxn = (n) =>
@@ -170,18 +226,25 @@ export default function CheckoutIsland() {
         identificationNumber: formData.payer?.identification?.number,
       });
 
+      console.log('Resultado Mercado Pago:', pago.mp_status, pago.mp_status_detail);
+
       if (pago.pedido_status === 'PAGADO') {
         if (!usandoPedido) clearCart();
         setResultado({ estado: 'PAGADO', total });
       } else if (pago.pedido_status === 'PENDIENTE') {
-        setResultado({ estado: 'PENDIENTE', total, pedidoId });
+        setResultado({
+          estado: 'PENDIENTE',
+          total,
+          pedidoId,
+          motivo: MOTIVOS_PENDIENTE[pago.mp_status_detail] ?? '',
+        });
       } else {
         // RECHAZADO / CANCELADO: ese pedido ya murió (el stock se regresó)
         pedidoIdRef.current = null;
         setResultado({
           estado: pago.pedido_status,
           total,
-          motivo: MOTIVOS[pago.mp_status_detail] ?? '',
+          motivo: MOTIVOS[pago.mp_status_detail] ?? 'Intenta con otra tarjeta.',
         });
       }
     } catch (err) {
@@ -300,7 +363,10 @@ export default function CheckoutIsland() {
           {pendiente && (
             <>
               <h3>Tu pago está en proceso</h3>
-              <p>Mercado Pago aún lo está validando. Esta pantalla se actualiza sola; también lo ves en “Mis pedidos”.</p>
+              <p>
+                {resultado.motivo || 'Mercado Pago aún lo está validando.'} Esta pantalla se actualiza sola;
+                también lo ves en “Mis pedidos”.
+              </p>
             </>
           )}
           {!ok && !pendiente && (
