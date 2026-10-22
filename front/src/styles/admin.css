@@ -247,3 +247,140 @@ textarea.adm-input {
 .adm-barra select:not(:last-of-type) {
   margin-right: 0;
 }
+
+/* ===== Pedidos ===== */
+.adm-resumen-texto {
+  margin: -6px 0 14px 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.adm-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.adm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #ddd6fe;
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.adm-chip:hover {
+  background-color: #ede9fe;
+}
+
+.adm-chip.activo {
+  background-color: #8b5cf6;
+  border-color: #8b5cf6;
+  color: #ffffff;
+}
+
+.adm-chip-num {
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #4c1d95;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.adm-chip.activo .adm-chip-num {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.adm-cliente {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.adm-cliente small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.adm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.adm-status-pendiente { background-color: #fef3c7; color: #92400e; }
+.adm-status-pagado    { background-color: #dcfce7; color: #15803d; }
+.adm-status-rechazado { background-color: #fee2e2; color: #b91c1c; }
+.adm-status-cancelado { background-color: #e2e8f0; color: #475569; }
+
+.adm-detalle-fila td {
+  background-color: #f8fafc;
+}
+
+.adm-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 4px;
+}
+
+.adm-detalle-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.adm-detalle-datos > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adm-detalle-etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+
+.adm-detalle-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-detalle-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.adm-detalle-nombre {
+  flex: 1;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.adm-detalle-cant {
+  color: #64748b;
+  white-space: nowrap;
+}

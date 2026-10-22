@@ -142,18 +142,23 @@ class Pedido:
     total: float
     status: str
     _orm: strawberry.Private[PedidoModel]
+    fecha_pago: Optional[str] = None
+    direccion_envio: Optional[str] = None
 
     @classmethod
     def from_orm(cls, obj: PedidoModel) -> "Pedido":
         fecha = obj.fecha
         if isinstance(fecha, datetime):
             fecha = fecha.isoformat()
+        fecha_pago = obj.fecha_pago.isoformat() if obj.fecha_pago else None
         return cls(
             id=str(obj.id),
             fecha=fecha,
             total=float(obj.total),
             status=obj.status,
             _orm=obj,
+            fecha_pago=fecha_pago,
+            direccion_envio=obj.direccion_envio,
         )
 
     @strawberry.field
@@ -401,6 +406,17 @@ class Query:
             select(UsuarioModel).order_by(UsuarioModel.id)
         )
         return [Usuario.from_orm(u) for u in result.scalars().all()]
+    
+    @strawberry.field(name="pedidosAdmin")
+    async def pedidos_admin(self, info: strawberry.Info, limit: int = 300) -> list[Pedido]:
+        requerir_admin(info)
+        limit = max(1, min(limit, 500))
+        result = await info.context["session"].execute(
+            select(PedidoModel)
+            .order_by(PedidoModel.fecha.desc(), PedidoModel.id.desc())
+            .limit(limit)
+        )
+        return [Pedido.from_orm(p) for p in result.scalars().all()]
 
     @strawberry.field
     async def pedidos(self, info: strawberry.Info) -> list[Pedido]:
