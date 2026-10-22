@@ -2,12 +2,13 @@ import asyncio
 import enum
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from zoneinfo import ZoneInfo
 from sqlalchemy.orm import selectinload
 
 from postali_service import buscar_cp
 from divisas_service import obtener_tasa
+from eventos import escuchar, publicar, snapshot_producto
 
 from decimal import Decimal
 from mercadoPago_client import MercadoPagoError, crear_orden_pago, estado_pedido
@@ -243,6 +244,26 @@ class DashboardAdmin:
     ventas_por_mes: list[PuntoSerie]
     pedidos_por_dia: list[PuntoSerie]
     ventas_por_categoria: list[PuntoCategoria]
+
+
+@strawberry.type
+class ProductoEvento:
+    id: strawberry.ID
+    nombre: str
+    precio: float
+    stock: int
+    activo: bool
+    descripcion: Optional[str] = None
+    imagen: Optional[str] = None
+    categoria_id: Optional[strawberry.ID] = None
+
+
+@strawberry.type
+class Subscription:
+    @strawberry.subscription(name="productoCambiado")
+    async def producto_cambiado(self) -> AsyncGenerator[ProductoEvento, None]:
+        async for datos in escuchar():
+            yield ProductoEvento(**datos)
 
 
 def _validar_producto(nombre=None, precio=None, stock=None):
@@ -592,6 +613,7 @@ class Mutation:
         pedido.mp_order_id = str(orden.get("id"))
         nuevo_estado = estado_pedido(orden)
 
+        eventos = []
         if nuevo_estado is not None:
             pedido.status = nuevo_estado
             if nuevo_estado == "PAGADO":
@@ -602,6 +624,7 @@ class Mutation:
                         ProductoModel, detalle.producto_id, with_for_update=True
                     )
                     producto.stock += detalle.cantidad
+                    eventos.append(snapshot_producto(producto))
 
         # Datos del correo antes del commit (después la sesión ya los expiró)
         correo = None
@@ -619,6 +642,9 @@ class Mutation:
             }
 
         await session.commit()
+
+        for ev in eventos:
+            publicar(ev)
 
         if correo:
             # En segundo plano: el cliente no espera a Brevo para ver "Pago aprobado"
@@ -659,7 +685,10 @@ class Mutation:
             categoria=categoria,
         )
         session.add(producto)
+        await session.flush()
+        evento = snapshot_producto(producto)
         await session.commit()
+        publicar(evento)
         return Producto.from_orm(producto)
 
     @strawberry.mutation(name="actualizarProducto")
@@ -697,7 +726,10 @@ class Mutation:
                 raise Exception(f"No existe la categoría {categoria_id}")
             producto.categoria = categoria
 
+        await session.flush()
+        evento = snapshot_producto(producto)
         await session.commit()
+        publicar(evento)
         return Producto.from_orm(producto)
 
     @strawberry.mutation(name="eliminarProducto")
@@ -710,7 +742,10 @@ class Mutation:
             raise Exception(f"No existe el producto {id}")
 
         producto.activo = False
+        await session.flush()
+        evento = snapshot_producto(producto)
         await session.commit()
+        publicar(evento)
         return True
 
     @strawberry.mutation(name="restaurarProducto")
@@ -723,7 +758,10 @@ class Mutation:
             raise Exception(f"No existe el producto {id}")
 
         producto.activo = True
+        await session.flush()
+        evento = snapshot_producto(producto)
         await session.commit()
+        publicar(evento)
         return Producto.from_orm(producto)
 
     @strawberry.mutation(name="cambiarRolUsuario")
@@ -929,6 +967,7 @@ class Mutation:
         session.add(pedido)
         await session.flush()   # asegura que el pedido ya tenga id
 
+        tocados = []
         total_servidor = Decimal("0")
         for item in items:
             producto = await session.get(
@@ -942,6 +981,7 @@ class Mutation:
                     f"quedan {producto.stock}, se piden {item.cantidad}"
                 )
             producto.stock -= item.cantidad
+            tocados.append(producto)
             total_servidor += producto.precio * item.cantidad
             session.add(DetallePedidoModel(
                 pedido=pedido,
@@ -951,7 +991,12 @@ class Mutation:
             ))
 
         pedido.total = total_servidor
+        await session.flush()
+        eventos = [snapshot_producto(p) for p in tocados]
         await session.commit()
+
+        for ev in eventos:
+            publicar(ev)
 
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)
@@ -960,5 +1005,6 @@ class Mutation:
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
+    subscription=Subscription,
     config=StrawberryConfig(auto_camel_case=False),
 )

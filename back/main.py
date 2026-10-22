@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import HTTPConnection
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from jwt_service import decodificar_token
 from fastapi import File, UploadFile
 from storage_client import MAX_BYTES, guardar_imagen
 from models import PedidoModel, ProductoModel, UsuarioModel
+from eventos import publicar, snapshot_producto
 import logging
 logger = logging.getLogger("uvicorn.error")
 
@@ -42,9 +44,10 @@ async def _usuario_vigente(session: AsyncSession, payload: dict):
         return None
     return {**payload, "rol": fila.rol}
 
-async def get_context(request: Request, session: AsyncSession = Depends(get_db)) -> dict:
+async def get_context(request: HTTPConnection, session: AsyncSession = Depends(get_db)) -> dict:
     # La sesión vive durante TODA la operación GraphQL (igual que antes)...
     # pero ahora también decodificamos quién anda pidiendo cosas 👀
+    # HTTPConnection cubre tanto Request (HTTP) como WebSocket (subscriptions).
     usuario = None
     token_expirado = False
 
@@ -110,6 +113,7 @@ async def webhook_mercadopago(request: Request, background_tasks: BackgroundTask
         return {"ok": True}
 
     correo = None
+    eventos = []
     async with AsyncSessionLocal() as session:
         async with session.begin():
             pedido = await session.get(PedidoModel, pedido_id, with_for_update=True)
@@ -138,6 +142,11 @@ async def webhook_mercadopago(request: Request, background_tasks: BackgroundTask
                         ProductoModel, detalle.producto_id, with_for_update=True
                     )
                     producto.stock += detalle.cantidad
+                    eventos.append(snapshot_producto(producto))
+
+    # Ya con la transacción cerrada: publicamos fuera del bloque
+    for ev in eventos:
+        publicar(ev)
 
     if correo:
         background_tasks.add_task(enviar_confirmacion_pago, **correo)
