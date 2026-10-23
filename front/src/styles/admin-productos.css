@@ -242,3 +242,35 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* ===== Indicador en vivo ===== */
+.adm-envivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.adm-envivo-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+}
+
+.adm-envivo.activo {
+  color: #15803d;
+}
+
+.adm-envivo.activo .adm-envivo-punto {
+  background-color: #22c55e;
+  animation: adm-pulso 1.6s ease-in-out infinite;
+}
+
+@keyframes adm-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

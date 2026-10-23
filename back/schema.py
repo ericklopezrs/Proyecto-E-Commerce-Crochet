@@ -8,7 +8,8 @@ from sqlalchemy.orm import selectinload
 
 from postali_service import buscar_cp
 from divisas_service import obtener_tasa
-from eventos import escuchar, publicar, snapshot_producto
+from database import AsyncSessionLocal
+from eventos import escuchar, publicar, publicar_pedido, snapshot_producto
 
 from decimal import Decimal
 from mercadoPago_client import MercadoPagoError, crear_orden_pago, estado_pedido
@@ -264,11 +265,81 @@ class ProductoEvento:
 
 
 @strawberry.type
+class UsuarioEvento:
+    id: strawberry.ID
+    nombre: str
+    email: str
+
+
+@strawberry.type
+class ProductoMiniEvento:
+    id: strawberry.ID
+    nombre: str
+    imagen: Optional[str] = None
+
+
+@strawberry.type
+class DetalleEvento:
+    id: strawberry.ID
+    cantidad: int
+    precio_unitario: float
+    producto: Optional[ProductoMiniEvento] = None
+
+
+@strawberry.type
+class PedidoEvento:
+    id: strawberry.ID
+    fecha: str
+    total: float
+    status: str
+    detalles: list[DetalleEvento]
+    fecha_pago: Optional[str] = None
+    direccion_envio: Optional[str] = None
+    usuario: Optional[UsuarioEvento] = None
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "PedidoEvento":
+        u = d.get("usuario")
+        return cls(
+            id=d["id"],
+            fecha=d["fecha"],
+            total=d["total"],
+            status=d["status"],
+            fecha_pago=d.get("fecha_pago"),
+            direccion_envio=d.get("direccion_envio"),
+            usuario=UsuarioEvento(**u) if u else None,
+            detalles=[
+                DetalleEvento(
+                    id=x["id"],
+                    cantidad=x["cantidad"],
+                    precio_unitario=x["precio_unitario"],
+                    producto=ProductoMiniEvento(**x["producto"]) if x["producto"] else None,
+                )
+                for x in d["detalles"]
+            ],
+        )
+
+
+@strawberry.type
 class Subscription:
     @strawberry.subscription(name="productoCambiado")
     async def producto_cambiado(self) -> AsyncGenerator[ProductoEvento, None]:
         async for datos in escuchar():
             yield ProductoEvento(**datos)
+
+    @strawberry.subscription(name="pedidoCambiado")
+    async def pedido_cambiado(
+        self, info: strawberry.Info
+    ) -> AsyncGenerator[PedidoEvento, None]:
+        uid = _usuario_de_ws(info)
+        if not await _es_admin_activo(uid):
+            raise Exception("Solo administradores")
+
+        async for datos in escuchar("pedidos"):
+            # Si lo degradaron o desactivaron mientras escuchaba, se corta
+            if not await _es_admin_activo(uid):
+                raise Exception("Solo administradores")
+            yield PedidoEvento.from_dict(datos)
 
 
 def _validar_producto(nombre=None, precio=None, stock=None):
@@ -290,6 +361,25 @@ async def _cerrar_sesiones(session, usuario_id: int):
         .where(RefreshTokenModel.usuario_id == usuario_id)
         .values(usado=True)
     )
+
+
+def _usuario_de_ws(info: strawberry.Info) -> int:
+    """Lee el token que el navegador manda en el connection_init del WebSocket."""
+    params = info.context.get("connection_params") or {}
+    auth = params.get("Authorization") or params.get("authorization") or ""
+    if not auth.startswith("Bearer "):
+        raise Exception("No autorizado")
+    payload = decodificar_token(auth.removeprefix("Bearer "))
+    if payload is None or payload.get("tipo") != "access":
+        raise Exception("Token inválido o expirado")
+    return int(payload["usuario_id"])
+
+
+async def _es_admin_activo(usuario_id: int) -> bool:
+    # Sesión corta propia: la del contexto vive tanto como la conexión
+    async with AsyncSessionLocal() as s:
+        fila = await s.get(UsuarioModel, usuario_id)
+        return bool(fila and fila.activo and fila.rol == "ADMIN")
 
 
 def _meses_atras_utc(n: int) -> datetime:
@@ -406,7 +496,7 @@ class Query:
             select(UsuarioModel).order_by(UsuarioModel.id)
         )
         return [Usuario.from_orm(u) for u in result.scalars().all()]
-    
+
     @strawberry.field(name="pedidosAdmin")
     async def pedidos_admin(self, info: strawberry.Info, limit: int = 300) -> list[Pedido]:
         requerir_admin(info)
@@ -600,6 +690,7 @@ class Mutation:
             raise Exception("Pedido no encontrado")
         if pedido.status != "PENDIENTE":
             raise Exception("Este pedido ya no está pendiente de pago")
+        pid = pedido.id
 
         items = [
             {
@@ -661,6 +752,7 @@ class Mutation:
 
         for ev in eventos:
             publicar(ev)
+        await publicar_pedido(pid)
 
         if correo:
             # En segundo plano: el cliente no espera a Brevo para ver "Pago aprobado"
@@ -982,6 +1074,7 @@ class Mutation:
         )
         session.add(pedido)
         await session.flush()   # asegura que el pedido ya tenga id
+        pid = pedido.id
 
         tocados = []
         total_servidor = Decimal("0")
@@ -1013,6 +1106,7 @@ class Mutation:
 
         for ev in eventos:
             publicar(ev)
+        await publicar_pedido(pid)
 
         await session.refresh(pedido)
         return Pedido.from_orm(pedido)

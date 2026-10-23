@@ -13,7 +13,7 @@ from jwt_service import decodificar_token
 from fastapi import File, UploadFile
 from storage_client import MAX_BYTES, guardar_imagen
 from models import PedidoModel, ProductoModel, UsuarioModel
-from eventos import publicar, snapshot_producto
+from eventos import publicar, publicar_pedido, snapshot_producto
 import logging
 logger = logging.getLogger("uvicorn.error")
 
@@ -147,6 +147,7 @@ async def webhook_mercadopago(request: Request, background_tasks: BackgroundTask
     # Ya con la transacción cerrada: publicamos fuera del bloque
     for ev in eventos:
         publicar(ev)
+    await publicar_pedido(pedido_id)
 
     if correo:
         background_tasks.add_task(enviar_confirmacion_pago, **correo)

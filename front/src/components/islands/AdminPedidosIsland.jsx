@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Lock, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { obtenerPedidosAdmin } from '../../services/adminPedidos.js';
+import { suscribirseAPedidos } from '../../lib/suscripcion.js';
 import { showToast } from '../../utils/toast.js';
 import AdminNav from '../AdminNav.jsx';
 
@@ -43,6 +44,17 @@ const formatearFecha = (iso) =>
       })
     : '—';
 
+// Si el pedido ya está en la lista lo reemplaza; si es nuevo, lo pone arriba
+function aplicarPedido(lista, p) {
+  const idx = lista.findIndex((x) => String(x.id) === String(p.id));
+  if (idx >= 0) {
+    const copia = [...lista];
+    copia[idx] = p;
+    return copia;
+  }
+  return [p, ...lista];
+}
+
 export default function AdminPedidosIsland() {
   const usuario = useAuthStore((s) => s.usuario);
   const esAdmin = usuario?.rol === 'ADMIN';
@@ -72,6 +84,37 @@ export default function AdminPedidosIsland() {
   useEffect(() => {
     if (esAdmin) cargar();
   }, [esAdmin]);
+
+  const [enVivo, setEnVivo] = useState(false);
+  const pedidosRef = useRef(null);
+
+  useEffect(() => {
+    pedidosRef.current = pedidos;
+  }, [pedidos]);
+
+  // La conexión en vivo se abre después de la primera carga
+  const yaCargo = pedidos !== null;
+  useEffect(() => {
+    if (!esAdmin || !yaCargo) return;
+
+    const cerrar = suscribirseAPedidos({
+      onPedido: (nuevo) => {
+        const previo = pedidosRef.current?.find((p) => String(p.id) === String(nuevo.id));
+        if (!previo) {
+          showToast(`Nuevo pedido #${nuevo.id}`, 'info');
+        } else if (previo.status !== nuevo.status) {
+          const texto = ESTADOS[nuevo.status]?.texto ?? nuevo.status;
+          showToast(`Pedido #${nuevo.id}: ${texto}`, nuevo.status === 'PAGADO' ? 'success' : 'info');
+        }
+        setPedidos((prev) => aplicarPedido(prev ?? [], nuevo));
+      },
+      onReconectar: () => cargar(),
+      onEstado: setEnVivo,
+      onError: (msg) => showToast(msg, 'error', 5000),
+    });
+
+    return cerrar;
+  }, [esAdmin, yaCargo]);
 
   const conteos = useMemo(() => {
     const c = { TODOS: 0, PENDIENTE: 0, PAGADO: 0, RECHAZADO: 0, CANCELADO: 0 };
@@ -241,6 +284,10 @@ export default function AdminPedidosIsland() {
         {pedidos && (
           <p className="adm-resumen-texto">
             Cobrado en pedidos pagados: <strong>{mxn(conteos.cobrado)}</strong>
+            <span className={`adm-envivo ${enVivo ? 'activo' : ''}`}>
+              <span className="adm-envivo-punto"></span>
+              {enVivo ? 'En vivo' : 'Sin conexión en vivo'}
+            </span>
           </p>
         )}
 
