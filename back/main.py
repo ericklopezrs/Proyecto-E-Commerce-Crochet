@@ -25,6 +25,7 @@ from database import AsyncSessionLocal
 from models import PedidoModel, ProductoModel
 from mercadoPago_client import estado_pedido, obtener_orden, validar_firma
 from email_service import enviar_confirmacion_pago
+from mcp_server import mcp_app
 
 
 
@@ -36,6 +37,14 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("SELECT 1"))
     yield
     await engine.dispose()   # antes: await pool.close()
+
+
+@asynccontextmanager
+async def lifespan_total(app: FastAPI):
+    async with lifespan(app):
+        async with mcp_app.lifespan(app):
+            yield
+
 
 async def _usuario_vigente(session: AsyncSession, payload: dict):
     """Confirma en la BD que la cuenta siga activa y usa el rol actual, no el del token."""
@@ -69,8 +78,11 @@ async def get_context(request: HTTPConnection, session: AsyncSession = Depends(g
 
 graphql_app = GraphQLRouter(schema, context_getter=get_context)
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan_total)
 app.include_router(graphql_app, prefix="/graphql")
+
+_secreto = os.getenv("MCP_SECRETO")
+app.mount(f"/mcp-{_secreto}" if _secreto else "/ai", mcp_app)
 
 # Orígenes permitidos: local siempre, y el dominio de Netlify vía FRONTEND_URL
 origenes = ["http://localhost:5173", "http://localhost:4321"]
