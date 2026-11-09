@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-
+import logo from '../assets/logo.png'
 export default function TopBar({
   searchTerm,
   onSearchChange,
@@ -38,7 +38,7 @@ export default function TopBar({
         {}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-            <img src="/logo.webp" alt="" width="70" height="70" className="brand-logo-img" />
+            <img src={logo.src} alt="" width="70" height="70" className="brand-logo-img" />
             <h1 className="brand-title">Peluches Crochet</h1>
           </div>
         </div>
