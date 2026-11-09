@@ -109,9 +109,16 @@ export default function CatalogoIsland({ categorias: categoriasIniciales }) {
       <main className="content">
         <div className="ml-promo-banner-container">
           <img
-            src="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=1200&q=80"
-            alt="Banner Promocional"
+            src="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=70"
+            srcSet="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=400&q=70 400w, https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=70 800w, https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=1200&q=70 1200w"
+            sizes="(max-width: 768px) 100vw, 75vw"
+            alt="Peluches de crochet hechos a mano"
             className="ml-promo-banner-img"
+            width="1200"
+            height="400"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
           />
         </div>
 
@@ -121,10 +128,10 @@ export default function CatalogoIsland({ categorias: categoriasIniciales }) {
           onGoCart={() => (window.location.href = '/carrito')}
         />
 
-        <h3 className="section-title">
+        <h2 className="section-title">
           <i className="fa-solid fa-store" style={{ marginRight: '8px' }}></i>
           {tituloCatalogo}
-        </h3>
+        </h2>
 
         {filteredProductos.length === 0 ? (
           <div className="empty-cart">

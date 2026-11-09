@@ -251,7 +251,7 @@
 }
 
 .product-stock span {
-  color: #16a34a;
+  color: #15803d;
   font-weight: 700;
 }
 
@@ -649,7 +649,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748b;
+  color: #475569;
   margin: 0 0 10px 0;
   font-weight: 700;
 }
@@ -711,7 +711,7 @@
 
 .filter-reset-btn {
   width: 100%;
-  background-color: #8b5cf6;
+  background-color: #7c3aed;
   color: #ffffff;
   border: none;
   padding: 10px;
@@ -723,7 +723,7 @@
 }
 
 .filter-reset-btn:hover {
-  background-color: #7c3aed;
+  background-color: #6d28d9;
 }
 
 @keyframes fade-in-up {

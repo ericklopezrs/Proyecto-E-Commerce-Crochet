@@ -5,7 +5,11 @@ import FloatingCartIsland from '../components/islands/FloatingCartIsland.jsx';
 import Footer from '../components/Footer.jsx';
 import '../styles/App.css';
 
-const { title = 'Peluches Crochet', categorias = [] } = Astro.props;
+const {
+  title = 'Peluches Crochet',
+  description = 'Tienda en línea de peluches y amigurumis tejidos a mano en crochet. Compra personajes, animales y regalos únicos con envío a todo México.',
+  categorias = [],
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -14,24 +18,33 @@ const { title = 'Peluches Crochet', categorias = [] } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    <link rel="icon" type="image/svg+xml" href="/front/public/iconocrochet.svg" />
+    <meta name="description" content={description} />
+    <link rel="icon" href="/iconocrochet.ico" />
+
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://proyecto-e-commerce-crochet.onrender.com" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    </noscript>
     <ClientRouter />
   </head>
   <body>
     <div class="app-wrapper">
       <TopBarIsland client:load categorias={categorias} />
       <FloatingCartIsland client:idle />
-
       <slot />
-
       <Footer />
     </div>
   </body>
   <script>
-  import '../utils/toast.js';
-</script>
+    import '../utils/toast.js';
+  </script>
 </html>

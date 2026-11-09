@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import logo from '../assets/logo.png';
 
 export default function TopBar({
   searchTerm,
@@ -39,15 +38,15 @@ export default function TopBar({
         {}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-            <img src={logo.src} alt="Logo" className="brand-logo-img" />
+            <img src="/logo.webp" alt="" width="70" height="70" className="brand-logo-img" />
             <h1 className="brand-title">Peluches Crochet</h1>
           </div>
         </div>
 
         {}
         <div className={`search-expand ${isSearchOpen ? 'open' : ''}`}>
-          <button className="search-toggle" onClick={toggleSearch} title="Buscar">
-            <i className="fa-solid fa-magnifying-glass"></i>
+          <button className="search-toggle" onClick={toggleSearch} title="Buscar" aria-label="Buscar productos">
+            <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
           </button>
 
           <input
@@ -59,6 +58,7 @@ export default function TopBar({
             onKeyDown={handleKeyDown}
             onBlur={() => { if (!searchTerm) setIsSearchOpen(false); }}
             className="search-input"
+            aria-label="Buscar productos"
           />
         </div>
 
@@ -69,20 +69,21 @@ export default function TopBar({
               <span className="header-user-name">
                 Hola, {usuario.nombre.split(' ')[0]}
               </span>
-              <a href="/mis-pedidos" className="header-login-btn" title="Mis pedidos">
-                <i className="fa-solid fa-box"></i>
+              <a href="/mis-pedidos" className="header-login-btn" title="Mis pedidos" aria-label="Mis pedidos">
+                <i className="fa-solid fa-box" aria-hidden="true"></i>
               </a>
                 {usuario.rol === 'ADMIN' && (
-                  <a href="/admin/productos" className="header-login-btn" title="Backoffice">
-                    <i className="fa-solid fa-screwdriver-wrench"></i>
+                  <a href="/admin/productos" className="header-login-btn" title="Backoffice" aria-label="Backoffice">
+                    <i className="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
                   </a>
                 )}
               <button
                 className="header-logout-btn"
                 onClick={onLogout}
                 title="Cerrar sesión"
+                aria-label="Cerrar sesión"
               >
-                <i className="fa-solid fa-right-from-bracket"></i>
+                <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
               </button>
             </div>
           ) : (
@@ -92,8 +93,12 @@ export default function TopBar({
             </a>
           )}
 
-          <button className="header-cart-button" onClick={onGoCart}>
-            <i className="fa-solid fa-cart-shopping"></i>
+          <button
+            className="header-cart-button"
+            onClick={onGoCart}
+            aria-label={`Ver carrito (${totalItemsCount} artículos)`}
+          >
+            <i className="fa-solid fa-cart-shopping" aria-hidden="true"></i>
             {totalItemsCount > 0 && (
               <span className="floating-cart-badge">{totalItemsCount}</span>
             )}

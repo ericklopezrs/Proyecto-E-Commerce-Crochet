@@ -9,14 +9,14 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
 
   return (
     <aside className="sidebar">
-      <h3 className="sidebar-title">
+      <h2 className="sidebar-title">
         <i className="fa-solid fa-sliders" style={{ marginRight: '8px' }}></i>
         Filtros
-      </h3>
+      </h2>
 
       {}
       <div className="filter-group">
-        <h4 className="filter-subtitle">Ordenar por</h4>
+        <h3 className="filter-subtitle">Ordenar por</h3>
 
         {ordenes.map((opt) => (
           <label key={opt.value} className="sort-option">
@@ -33,7 +33,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
 
       {/* PRECIO */}
       <div className="filter-group">
-        <h4 className="filter-subtitle">Precio (MXN)</h4>
+        <h3 className="filter-subtitle">Precio (MXN)</h3>
 
         <div className="price-inputs">
           <input
@@ -56,7 +56,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
 
       {/* DISPONIBILIDAD */}
       <div className="filter-group">
-        <h4 className="filter-subtitle">Disponibilidad</h4>
+        <h3 className="filter-subtitle">Disponibilidad</h3>
 
         <label className="filter-check">
           <input

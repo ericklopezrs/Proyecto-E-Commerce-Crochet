@@ -198,4 +198,14 @@ async def subir_imagen_producto(request: Request, archivo: UploadFile = File(...
 # Si la carpeta no existe (por ejemplo, un repo sin imágenes), la crea
 # en vez de tronar al arrancara
 os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+app.mount("/uploads", CachedStaticFiles(directory="uploads"), name="uploads")
