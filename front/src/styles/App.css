@@ -1174,3 +1174,9 @@
   .pedido-header-info { flex-basis: 100%; }
   .pedido-total { margin-left: auto; }
 }
+/* ====== ÍCONOS (lucide-react) ====== */
+.icono {
+  display: inline-block;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}

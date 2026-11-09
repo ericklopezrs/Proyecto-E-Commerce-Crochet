@@ -1,3 +1,4 @@
+import { ArrowLeft, CreditCard, ShoppingBasket, ShoppingCart, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { fetchGraphQL } from '../../graphql/cliente.js';
@@ -38,21 +39,18 @@ export default function CartIsland() {
       <main className="content">
         <div className="ml-cart">
           <a href="/" className="back-button" style={{ textDecoration: 'none' }}>
-            <i className="fa-solid fa-arrow-left" style={{ marginRight: '6px' }}></i>
+            <ArrowLeft size="1em" className="icono" style={{ marginRight: '6px' }} />
             Volver al catálogo
           </a>
 
           <h3 className="section-title">
-            <i className="fa-solid fa-basket-shopping" style={{ marginRight: '8px' }}></i>
+            <ShoppingBasket size="1em" className="icono" style={{ marginRight: '8px' }} />
             Tu Carrito{cart.length > 0 && ` (${totalPiezas})`}
           </h3>
 
           {cart.length === 0 ? (
             <div className="empty-cart">
-              <i
-                className="fa-solid fa-cart-flatbed"
-                style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}
-              ></i>
+              <ShoppingCart size="1em" className="icono" style={{ fontSize: '32px', display: 'block', margin: '0 auto 12px' }} />
               El carrito está vacío.
               <div style={{ marginTop: '16px' }}>
                 <a
@@ -133,7 +131,7 @@ export default function CartIsland() {
                             className="ml-remove"
                             onClick={() => removeFromCart(producto.id)}
                           >
-                            <i className="fa-solid fa-trash-can" style={{ marginRight: '4px' }}></i>
+                            <Trash2 size="1em" className="icono" style={{ marginRight: '4px' }} />
                             Eliminar
                           </button>
                         </div>
@@ -175,7 +173,7 @@ export default function CartIsland() {
                     textDecoration: 'none',
                   }}
                 >
-                  <i className="fa-solid fa-credit-card" style={{ marginRight: '8px' }}></i>
+                  <CreditCard size="1em" className="icono" style={{ marginRight: '8px' }} />
                   Continuar compra
                 </a>
               </aside>

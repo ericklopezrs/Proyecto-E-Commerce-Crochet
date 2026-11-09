@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, Search } from 'lucide-react';
+import { Search, Lock, EyeOff, RotateCcw, PackageOpen, Pen, Plus } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
   obtenerProductosAdmin,
@@ -387,7 +387,7 @@ export default function AdminProductosIsland() {
                       onClick={() => setFormulario({ producto: p })}
                       disabled={trabajando === p.id}
                     >
-                      <i className="fa-solid fa-pen"></i> Editar
+                      <Pen size="1em" className="icono" /> Editar
                     </button>
                     {p.activo ? (
                       <button
@@ -396,7 +396,7 @@ export default function AdminProductosIsland() {
                         onClick={() => setPorDesactivar(p)}
                         disabled={trabajando === p.id}
                       >
-                        <i className="fa-solid fa-eye-slash"></i> Desactivar
+                        <EyeOff size="1em" className="icono" /> Desactivar
                       </button>
                     ) : (
                       <button
@@ -405,7 +405,7 @@ export default function AdminProductosIsland() {
                         onClick={() => cambiarEstado(p, true)}
                         disabled={trabajando === p.id}
                       >
-                        <i className="fa-solid fa-rotate-left"></i>{' '}
+                        <RotateCcw size="1em" className="icono" />{' '}
                         {trabajando === p.id ? 'Restaurando...' : 'Restaurar'}
                       </button>
                     )}
@@ -425,7 +425,7 @@ export default function AdminProductosIsland() {
         <AdminNav activa="productos" />
 
         <h3 className="section-title">
-          <i className="fa-solid fa-box-open" style={{ marginRight: '8px' }}></i>
+          <PackageOpen size="1em" className="icono" style={{ marginRight: '8px' }} />
           Productos
           {productos && ` (${productos.filter((p) => p.activo).length} activos de ${productos.length})`}
         </h3>
@@ -451,7 +451,7 @@ export default function AdminProductosIsland() {
             onClick={() => setFormulario({ producto: null })}
             disabled={productos === null}
           >
-            <i className="fa-solid fa-plus"></i> Nuevo producto
+            <Plus size="1em" className="icono" /> Nuevo producto
           </button>
         </div>
 

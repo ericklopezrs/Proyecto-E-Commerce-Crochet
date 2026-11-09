@@ -1,8 +1,9 @@
+import { ChartLine, PackageOpen, Receipt, Users } from 'lucide-react';
 const ENLACES = [
-  { id: 'dashboard', href: '/admin', icono: 'fa-chart-line', texto: 'Gráficas' },
-  { id: 'productos', href: '/admin/productos', icono: 'fa-box-open', texto: 'Productos' },
-  { id: 'pedidos', href: '/admin/pedidos', icono: 'fa-receipt', texto: 'Pedidos' },
-  { id: 'usuarios', href: '/admin/usuarios', icono: 'fa-users', texto: 'Usuarios' },
+  { id: 'dashboard', href: '/admin', icono: ChartLine, texto: 'Gráficas' },
+  { id: 'productos', href: '/admin/productos', icono: PackageOpen, texto: 'Productos' },
+  { id: 'pedidos', href: '/admin/pedidos', icono: Receipt, texto: 'Pedidos' },
+  { id: 'usuarios', href: '/admin/usuarios', icono: Users, texto: 'Usuarios' },
 ];
 
 export default function AdminNav({ activa }) {
@@ -15,7 +16,7 @@ export default function AdminNav({ activa }) {
           className={`adm-nav-link ${activa === e.id ? 'activo' : ''}`}
           aria-current={activa === e.id ? 'page' : undefined}
         >
-          <i className={`fa-solid ${e.icono}`}></i>
+          <e.icono size="1em" className="icono" />
           {e.texto}
         </a>
       ))}

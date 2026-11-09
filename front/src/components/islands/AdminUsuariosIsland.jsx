@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, Search } from 'lucide-react';
+import { Search, Lock, ShieldCheck, Users, UserX, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
   obtenerUsuariosAdmin,
@@ -184,7 +184,7 @@ export default function AdminUsuariosIsland() {
                           })
                         }
                       >
-                        <i className="fa-solid fa-user-shield"></i>{' '}
+                        <ShieldCheck size="1em" className="icono" />{' '}
                         {esAdminFila ? 'Quitar admin' : 'Hacer admin'}
                       </button>
                       {u.activo ? (
@@ -195,7 +195,7 @@ export default function AdminUsuariosIsland() {
                           title={esYo ? 'No puedes desactivar tu propia cuenta' : undefined}
                           onClick={() => setAccion({ tipo: 'estado', usuario: u, valor: false })}
                         >
-                          <i className="fa-solid fa-user-slash"></i> Desactivar
+                          <UserX size="1em" className="icono" /> Desactivar
                         </button>
                       ) : (
                         <button
@@ -203,7 +203,7 @@ export default function AdminUsuariosIsland() {
                           className="adm-btn-suave"
                           onClick={() => setAccion({ tipo: 'estado', usuario: u, valor: true })}
                         >
-                          <i className="fa-solid fa-user-check"></i> Reactivar
+                          <UserCheck size="1em" className="icono" /> Reactivar
                         </button>
                       )}
                     </div>
@@ -225,7 +225,7 @@ export default function AdminUsuariosIsland() {
         <AdminNav activa="usuarios" />
 
         <h3 className="section-title">
-          <i className="fa-solid fa-users" style={{ marginRight: '8px' }}></i>
+          <Users size="1em" className="icono" style={{ marginRight: '8px' }} />
           Usuarios
           {usuarios &&
             ` (${usuarios.length} en total, ${usuarios.filter((u) => u.rol === 'ADMIN').length} administradores)`}

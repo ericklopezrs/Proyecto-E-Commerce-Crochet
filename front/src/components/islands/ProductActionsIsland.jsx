@@ -1,3 +1,4 @@
+import { CreditCard, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
 
@@ -29,7 +30,7 @@ export default function ProductActionsIsland({ producto }) {
           style={{ flex: 2, padding: '14px 20px', fontSize: '15px' }}
           onClick={() => addToCart(producto, qty)}
         >
-          <i className="fa-solid fa-cart-plus" style={{ marginRight: '8px' }}></i>
+          <ShoppingCart size="1em" className="icono" style={{ marginRight: '8px' }} />
           Agregar al Carrito
         </button>
 
@@ -41,7 +42,7 @@ export default function ProductActionsIsland({ producto }) {
             window.location.href = '/carrito';
           }}
         >
-          <i className="fa-solid fa-credit-card" style={{ marginRight: '6px' }}></i>
+          <CreditCard size="1em" className="icono" style={{ marginRight: '6px' }} />
           Comprar Ahora
         </button>
       </div>

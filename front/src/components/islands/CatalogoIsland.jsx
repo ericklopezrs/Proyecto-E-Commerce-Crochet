@@ -1,3 +1,4 @@
+import { Search, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useUiStore } from '../../store/useUiStore.js';
@@ -129,16 +130,13 @@ export default function CatalogoIsland({ categorias: categoriasIniciales }) {
         />
 
         <h2 className="section-title">
-          <i className="fa-solid fa-store" style={{ marginRight: '8px' }}></i>
+          <Store size="1em" className="icono" style={{ marginRight: '8px' }} />
           {tituloCatalogo}
         </h2>
 
         {filteredProductos.length === 0 ? (
           <div className="empty-cart">
-            <i
-              className="fa-solid fa-magnifying-glass"
-              style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}
-            ></i>
+            <Search size="1em" className="icono" style={{ fontSize: '32px', display: 'block', margin: '0 auto 12px' }} />
             No se encontraron productos {searchTerm && <> para "{searchTerm}"</>}.
             <div
               style={{

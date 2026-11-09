@@ -1,3 +1,4 @@
+import { ArrowLeft, CreditCard, Lock, Package, PackageOpen, Clock, CircleCheck, CircleX, Ban, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { obtenerMisPedidos } from '../../services/pedidos.js';
@@ -27,10 +28,10 @@ const formatearFecha = (iso) =>
   });
 
 const ESTADOS = {
-  PENDIENTE: { texto: 'Pendiente de pago', icono: 'fa-clock' },
-  PAGADO: { texto: 'Pagado', icono: 'fa-circle-check' },
-  RECHAZADO: { texto: 'Rechazado', icono: 'fa-circle-xmark' },
-  CANCELADO: { texto: 'Cancelado', icono: 'fa-ban' },
+  PENDIENTE: { texto: 'Pendiente de pago', icono: Clock },
+  PAGADO: { texto: 'Pagado', icono: CircleCheck },
+  RECHAZADO: { texto: 'Rechazado', icono: CircleX },
+  CANCELADO: { texto: 'Cancelado', icono: Ban },
 };
 
 export default function MisPedidosIsland() {
@@ -59,7 +60,7 @@ export default function MisPedidosIsland() {
     return (
       <Envoltura>
         <div className="pc-card pc-empty">
-          <i className="fa-solid fa-lock"></i>
+          <Lock size="1em" className="icono" />
           <p style={{ margin: 0 }}>Necesitas iniciar sesión para ver tus pedidos.</p>
           <div className="pc-actions">
             <a href="/login" className="pc-btn pc-btn-morado">Iniciar sesión</a>
@@ -77,7 +78,7 @@ export default function MisPedidosIsland() {
   } else if (pedidos.length === 0) {
     contenido = (
       <div className="pc-card pc-empty">
-        <i className="fa-solid fa-box-open"></i>
+        <PackageOpen size="1em" className="icono" />
         <p style={{ margin: 0 }}>Todavía no tienes pedidos.</p>
         <div className="pc-actions">
           <a href="/" className="pc-btn pc-btn-morado">Ver productos</a>
@@ -88,7 +89,7 @@ export default function MisPedidosIsland() {
     contenido = (
       <section className="pc-orders">
         {pedidos.map((pedido) => {
-          const estado = ESTADOS[pedido.status] ?? { texto: pedido.status, icono: 'fa-circle-info' };
+          const estado = ESTADOS[pedido.status] ?? { texto: pedido.status, icono: Info };
           const piezas = pedido.detalles.reduce((t, d) => t + d.cantidad, 0);
           const estaAbierto = abierto === pedido.id;
 
@@ -107,11 +108,13 @@ export default function MisPedidosIsland() {
                   </span>
                 </div>
                 <span className={`pc-badge pc-badge-${pedido.status.toLowerCase()}`}>
-                  <i className={`fa-solid ${estado.icono}`}></i>
+                  <estado.icono size="1em" className="icono" />
                   {estado.texto}
                 </span>
                 <span className="pc-order-total">{mxn(pedido.total)}</span>
-                <i className={`fa-solid fa-chevron-${estaAbierto ? 'up' : 'down'} pc-chevron`}></i>
+                {estaAbierto
+                  ? <ChevronUp size="1em" className="icono pc-chevron" />
+                  : <ChevronDown size="1em" className="icono pc-chevron" />}
               </button>
 
               {estaAbierto && (
@@ -146,7 +149,7 @@ export default function MisPedidosIsland() {
                   {pedido.status === 'PENDIENTE' && (
                     <div className="pc-order-actions">
                       <a href={`/checkout?pedido=${pedido.id}`} className="pc-btn pc-btn-morado">
-                        <i className="fa-solid fa-credit-card"></i>
+                        <CreditCard size="1em" className="icono" />
                         Pagar ahora
                       </a>
                     </div>
@@ -163,12 +166,12 @@ export default function MisPedidosIsland() {
   return (
     <Envoltura>
       <a href="/" className="pc-back">
-        <i className="fa-solid fa-arrow-left"></i>
+        <ArrowLeft size="1em" className="icono" />
         Volver al catálogo
       </a>
 
       <h3 className="pc-title">
-        <i className="fa-solid fa-box"></i>
+        <Package size="1em" className="icono" />
         Mis pedidos
       </h3>
 

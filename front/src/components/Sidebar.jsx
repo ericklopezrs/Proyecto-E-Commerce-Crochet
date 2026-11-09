@@ -1,3 +1,4 @@
+import { RotateCcw, SlidersHorizontal } from 'lucide-react';
 export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
   const ordenes = [
     { value: 'default',    label: 'Destacados' },
@@ -10,7 +11,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
   return (
     <aside className="sidebar">
       <h2 className="sidebar-title">
-        <i className="fa-solid fa-sliders" style={{ marginRight: '8px' }}></i>
+        <SlidersHorizontal size="1em" className="icono" style={{ marginRight: '8px' }} />
         Filtros
       </h2>
 
@@ -69,7 +70,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
       </div>
 
       <button className="filter-reset-btn" onClick={onResetFilters}>
-        <i className="fa-solid fa-rotate-left" style={{ marginRight: '8px' }}></i>
+        <RotateCcw size="1em" className="icono" style={{ marginRight: '8px' }} />
         Limpiar filtros
       </button>
     </aside>

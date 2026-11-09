@@ -1,3 +1,5 @@
+import { Eye, ShoppingCart } from 'lucide-react';
+
 export default function ProductCard({ producto, qty, availableStock, onView, onAdd }) {
   return (
     <div
@@ -28,7 +30,7 @@ export default function ProductCard({ producto, qty, availableStock, onView, onA
               onClick={() => onView(producto)}
               aria-label={`Ver detalles de ${producto.nombre}`}
             >
-              <i className="fa-solid fa-eye" aria-hidden="true"></i>
+              <Eye size="1em" className="icono" />
             </button>
             <button
               className="primary-btn-sm"
@@ -36,7 +38,7 @@ export default function ProductCard({ producto, qty, availableStock, onView, onA
               disabled={availableStock === 0}
               aria-label={`Agregar ${producto.nombre} al carrito`}
             >
-              <i className="fa-solid fa-cart-plus" aria-hidden="true"></i> Agregar
+              <ShoppingCart size="1em" className="icono" /> Agregar
             </button>
           </div>
         </div>

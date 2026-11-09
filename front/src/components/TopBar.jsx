@@ -1,5 +1,7 @@
+import { LayoutGrid, LogIn, LogOut, Package, Search, ShoppingCart, Wrench } from 'lucide-react';
+import logo from '../assets/logo.png';
 import { useState, useRef } from 'react';
-import logo from '../assets/logo.png'
+
 export default function TopBar({
   searchTerm,
   onSearchChange,
@@ -46,7 +48,7 @@ export default function TopBar({
         {}
         <div className={`search-expand ${isSearchOpen ? 'open' : ''}`}>
           <button className="search-toggle" onClick={toggleSearch} title="Buscar" aria-label="Buscar productos">
-            <i className="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <Search size="1em" className="icono" />
           </button>
 
           <input
@@ -70,11 +72,11 @@ export default function TopBar({
                 Hola, {usuario.nombre.split(' ')[0]}
               </span>
               <a href="/mis-pedidos" className="header-login-btn" title="Mis pedidos" aria-label="Mis pedidos">
-                <i className="fa-solid fa-box" aria-hidden="true"></i>
+                <Package size="1em" className="icono" />
               </a>
                 {usuario.rol === 'ADMIN' && (
                   <a href="/admin/productos" className="header-login-btn" title="Backoffice" aria-label="Backoffice">
-                    <i className="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                    <Wrench size="1em" className="icono" />
                   </a>
                 )}
               <button
@@ -83,12 +85,12 @@ export default function TopBar({
                 title="Cerrar sesión"
                 aria-label="Cerrar sesión"
               >
-                <i className="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+                <LogOut size="1em" className="icono" />
               </button>
             </div>
           ) : (
             <a href="/login" className="header-login-btn">
-              <i className="fa-solid fa-right-to-bracket" style={{ marginRight: '6px' }}></i>
+              <LogIn size="1em" className="icono" style={{ marginRight: '6px' }} />
               Iniciar Sesión
             </a>
           )}
@@ -98,7 +100,7 @@ export default function TopBar({
             onClick={onGoCart}
             aria-label={`Ver carrito (${totalItemsCount} artículos)`}
           >
-            <i className="fa-solid fa-cart-shopping" aria-hidden="true"></i>
+            <ShoppingCart size="1em" className="icono" />
             {totalItemsCount > 0 && (
               <span className="floating-cart-badge">{totalItemsCount}</span>
             )}
@@ -112,7 +114,7 @@ export default function TopBar({
           className={`category-chip ${selectedCategoria === 'TODAS' ? 'active' : ''}`}
           onClick={() => onSelectCategoria('TODAS')}
         >
-          <i className="fa-solid fa-border-all" style={{ marginRight: '6px' }}></i>
+          <LayoutGrid size="1em" className="icono" style={{ marginRight: '6px' }} />
           Todo
         </button>
 

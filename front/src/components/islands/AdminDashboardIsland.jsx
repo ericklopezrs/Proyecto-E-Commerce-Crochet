@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, ChartLine, DollarSign, PackageOpen, Users, Heart } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import AdminNav from '../AdminNav.jsx';
 import { obtenerDashboardAdmin } from '../../services/dashboard.js';
@@ -141,25 +141,25 @@ export default function AdminDashboardIsland() {
   // KPIs armados a partir de la respuesta del backend
   const kpis = datos ? [
     {
-      icono: 'fa-sack-dollar',
+      icono: DollarSign,
       etiqueta: 'Ventas del mes',
       valor: fmtMXN(datos.kpis.ventas_mes),
       cambio: datos.kpis.cambio_ventas,
     },
     {
-      icono: 'fa-box-open',
+      icono: PackageOpen,
       etiqueta: 'Pedidos',
       valor: String(datos.kpis.pedidos_mes),
       cambio: datos.kpis.cambio_pedidos,
     },
     {
-      icono: 'fa-users',
+      icono: Users,
       etiqueta: 'Clientes',
       valor: String(datos.kpis.clientes_total),
       cambio: null,
     },
     {
-      icono: 'fa-heart',
+      icono: Heart,
       etiqueta: 'Peluches en catálogo',
       valor: String(datos.kpis.peluches_catalogo),
       cambio: null,
@@ -171,7 +171,7 @@ export default function AdminDashboardIsland() {
       <main className="content admin-content">
         <AdminNav activa="dashboard" />
         <h3 className="section-title">
-          <i className="fa-solid fa-chart-line" style={{ marginRight: '8px' }}></i>
+          <ChartLine size="1em" className="icono" style={{ marginRight: '8px' }} />
           Panel de administración
         </h3>
 
@@ -188,7 +188,7 @@ export default function AdminDashboardIsland() {
             <section className="admin-kpis">
               {kpis.map((k) => (
                 <div key={k.etiqueta} className="admin-kpi">
-                  <i className={`fa-solid ${k.icono} admin-kpi-icono`}></i>
+                  <span className="admin-kpi-icono"><k.icono size="1em" /></span>
                   <div>
                     <div className="admin-kpi-valor">{k.valor}</div>
                     <div className="admin-kpi-etiqueta">{k.etiqueta}</div>

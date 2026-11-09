@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { Lock, Search } from 'lucide-react';
+import { Search, Lock, Receipt, RefreshCw, Clock, CircleCheck, CircleX, Ban, Info, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { obtenerPedidosAdmin } from '../../services/adminPedidos.js';
 import { suscribirseAPedidos } from '../../lib/suscripcion.js';
@@ -16,10 +16,10 @@ const IMAGEN_RESPALDO =
   );
 
 const ESTADOS = {
-  PENDIENTE: { texto: 'Pendiente', icono: 'fa-clock' },
-  PAGADO: { texto: 'Pagado', icono: 'fa-circle-check' },
-  RECHAZADO: { texto: 'Rechazado', icono: 'fa-circle-xmark' },
-  CANCELADO: { texto: 'Cancelado', icono: 'fa-ban' },
+  PENDIENTE: { texto: 'Pendiente', icono: Clock },
+  PAGADO: { texto: 'Pagado', icono: CircleCheck },
+  RECHAZADO: { texto: 'Rechazado', icono: CircleX },
+  CANCELADO: { texto: 'Cancelado', icono: Ban },
 };
 
 const FILTROS = [
@@ -181,7 +181,7 @@ export default function AdminPedidosIsland() {
           </thead>
           <tbody>
             {filtrados.map((p) => {
-              const estado = ESTADOS[p.status] ?? { texto: p.status, icono: 'fa-circle-info' };
+              const estado = ESTADOS[p.status] ?? { texto: p.status, icono: Info };
               const piezas = p.detalles.reduce((t, d) => t + d.cantidad, 0);
               const abierta = abierto === p.id;
 
@@ -204,7 +204,7 @@ export default function AdminPedidosIsland() {
                     <td>{mxn(p.total)}</td>
                     <td>
                       <span className={`adm-status adm-status-${p.status.toLowerCase()}`}>
-                        <i className={`fa-solid ${estado.icono}`}></i> {estado.texto}
+                        <estado.icono size="1em" className="icono" /> {estado.texto}
                       </span>
                     </td>
                     <td className="adm-acciones">
@@ -214,7 +214,7 @@ export default function AdminPedidosIsland() {
                         aria-expanded={abierta}
                         onClick={() => setAbierto(abierta ? null : p.id)}
                       >
-                        <i className={`fa-solid fa-chevron-${abierta ? 'up' : 'down'}`}></i>{' '}
+                        {abierta ? <ChevronUp size="1em" className="icono" /> : <ChevronDown size="1em" className="icono" />}{' '}
                         {abierta ? 'Ocultar' : 'Ver detalle'}
                       </button>
                     </td>
@@ -276,7 +276,7 @@ export default function AdminPedidosIsland() {
         <AdminNav activa="pedidos" />
 
         <h3 className="section-title">
-          <i className="fa-solid fa-receipt" style={{ marginRight: '8px' }}></i>
+          <Receipt size="1em" className="icono" style={{ marginRight: '8px' }} />
           Pedidos
           {pedidos && ` (${conteos.TODOS})`}
         </h3>
@@ -320,7 +320,7 @@ export default function AdminPedidosIsland() {
             onClick={() => cargar(true)}
             disabled={cargando}
           >
-            <i className="fa-solid fa-rotate"></i> {cargando ? 'Actualizando...' : 'Actualizar'}
+            <RefreshCw size="1em" className="icono" /> {cargando ? 'Actualizando...' : 'Actualizar'}
           </button>
         </div>
 

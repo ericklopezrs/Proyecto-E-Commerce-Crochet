@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Lock, CircleCheck, CircleAlert, ShoppingBag, Clock } from 'lucide-react';
+import { ShoppingBag, Lock, CircleAlert, Clock, CircleCheck, Truck, ShoppingCart, CreditCard, ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
@@ -437,7 +437,7 @@ export default function CheckoutIsland() {
   if (usandoPedido && (errorCarga || pedidoExistente.status !== 'PENDIENTE')) {
     return (
       <Vacio
-        icono={<i className="fa-solid fa-circle-info"></i>}
+        icono={<Info size="1em" className="icono" />}
         texto={errorCarga || 'Este pedido ya no está pendiente de pago.'}
         href="/mis-pedidos"
         boton="Ir a mis pedidos"
@@ -448,7 +448,7 @@ export default function CheckoutIsland() {
   if (!usandoPedido && cart.length === 0) {
     return (
       <Vacio
-        icono={<i className="fa-solid fa-cart-flatbed"></i>}
+        icono={<ShoppingCart size="1em" className="icono" />}
         texto="Tu carrito está vacío."
         href="/"
         boton="Ver productos"
@@ -459,18 +459,18 @@ export default function CheckoutIsland() {
   return (
     <Aviso>
       <a href={usandoPedido ? '/mis-pedidos' : '/carrito'} className="pc-back">
-        <i className="fa-solid fa-arrow-left"></i>
+        <ArrowLeft size="1em" className="icono" />
         {usandoPedido ? 'Volver a mis pedidos' : 'Volver al carrito'}
       </a>
 
       <h3 className="pc-title">
-        <i className="fa-solid fa-clipboard-check"></i>
+        <ClipboardCheck size="1em" className="icono" />
         Confirmar y pagar
       </h3>
 
       <section className="pc-card">
         <h4 className="pc-card-title">
-          <i className="fa-solid fa-bag-shopping"></i>
+          <ShoppingBag size="1em" className="icono" />
           Resumen del pedido{usandoPedido ? ` #${pedidoExistente.id}` : ''}
         </h4>
 
@@ -505,7 +505,7 @@ export default function CheckoutIsland() {
       {!usandoPedido && (
         <section className="pc-card">
           <h4 className="pc-card-title">
-            <i className="fa-solid fa-truck"></i>
+            <Truck size="1em" className="icono" />
             Dirección de envío
           </h4>
           <div style={{ display: 'grid', gap: '10px' }}>
@@ -543,7 +543,7 @@ export default function CheckoutIsland() {
 
       <section className="pc-card">
         <h4 className="pc-card-title">
-          <i className="fa-solid fa-credit-card"></i>
+          <CreditCard size="1em" className="icono" />
           Datos de tu tarjeta
         </h4>
 
@@ -563,7 +563,7 @@ export default function CheckoutIsland() {
         {!brickListo && <p className="pc-muted">Cargando formulario de pago...</p>}
         <div id={BRICK_ID}></div>
         <p className="pc-muted" style={{ marginTop: '12px', textAlign: 'center' }}>
-          <i className="fa-solid fa-lock" style={{ marginRight: '6px' }}></i>
+          <Lock size="1em" className="icono" style={{ marginRight: '6px' }} />
           Pago seguro procesado por Mercado Pago
         </p>
       </section>

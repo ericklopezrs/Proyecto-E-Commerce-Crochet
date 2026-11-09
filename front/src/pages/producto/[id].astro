@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ProductActionsIsland from '../../components/islands/ProductActionsIsland.jsx';
 import { getCategorias } from '../../lib/data';
 import PrecioUSD from '../../components/PrecioUSD.jsx';
+import { ArrowLeft } from 'lucide-react';
 const { id } = Astro.params;
 const categorias = await getCategorias();
 
@@ -19,7 +20,7 @@ if (!producto) {
   <div class="main-container">
     <main class="content">
       <a href="/" class="back-button" style="text-decoration: none;">
-        <i class="fa-solid fa-arrow-left" style="margin-right: 6px;"></i>
+        <ArrowLeft size="1em" className="icono" style={{ marginRight: '6px' }} />
         Volver al catálogo
       </a>
 

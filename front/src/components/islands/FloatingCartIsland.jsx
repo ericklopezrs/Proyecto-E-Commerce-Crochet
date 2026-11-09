@@ -1,3 +1,4 @@
+import { ShoppingBasket } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 
 export default function FloatingCartIsland() {
@@ -12,7 +13,7 @@ export default function FloatingCartIsland() {
       data-astro-reload
       aria-label={`Ir al carrito (${totalItemsCount} artículos)`}
     >
-      <i className="fa-solid fa-basket-shopping" aria-hidden="true"></i>
+      <ShoppingBasket size="1em" className="icono" />
       {totalItemsCount > 0 && (
         <span className="floating-cart-badge">{totalItemsCount}</span>
       )}
