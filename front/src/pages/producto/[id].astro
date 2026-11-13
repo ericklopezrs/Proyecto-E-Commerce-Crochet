@@ -14,9 +14,34 @@ const producto = categorias
 if (!producto) {
   return Astro.redirect('/');
 }
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: producto.nombre,
+  description: producto.descripcion,
+  image: producto.imagen,
+  sku: String(producto.id),
+  offers: {
+    '@type': 'Offer',
+    price: producto.precio,
+    priceCurrency: 'MXN',
+    availability:
+      (producto.stock ?? 0) > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+    url: `https://proyecto-e-commerce-crochet.vercel.app/producto/${producto.id}`,
+  },
+};
 ---
 
-<Layout title={`${producto.nombre} — Peluches Crochet`} categorias={categorias}>
+<Layout
+  title={`${producto.nombre} — Peluches Crochet`}
+  description={producto.descripcion}
+  categorias={categorias}
+>
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(jsonLd)} />
+
   <div class="main-container">
     <main class="content">
       <a href="/" class="back-button" style="text-decoration: none;">
@@ -29,6 +54,9 @@ if (!producto) {
           src={producto.imagen || 'https://via.placeholder.com/280'}
           alt={producto.nombre}
           class="detail-image"
+          width="280"
+          height="280"
+          fetchpriority="high"
         />
 
         <div class="detail-body">
