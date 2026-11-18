@@ -1,10 +1,17 @@
+/* ====== Tokens de diseño (también los usa el manifiesto de la PWA) ====== */
+:root {
+  --color-primario: #baa2f3; /* morado de la marca: header, footer, theme_color */
+  --color-acento: #8b5cf6;   /* botones y chips activos */
+  --color-fondo: #f1f5f9;    /* fondo de la tienda: background_color */
+}
+
 /* Paleta Neutra Grisácea (ORIGINAL) */
 .app-wrapper {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   display: flex;          /* NUEVO */
   flex-direction: column; /* NUEVO */
-  background-color: #f1f5f9;
+  background-color: var(--color-fondo);
   color: #334155;
   position: relative;
 }
@@ -12,7 +19,7 @@
 /* ====== CAMBIO 1: Header Morado ====== */
 /* ====== HEADER (2 filas: main + categorías) ====== */
 .header {
-  background-color: #baa2f3;
+  background-color: var(--color-primario);
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -251,7 +258,7 @@
 }
 
 .product-stock span {
-  color: #16a34a;
+  color: #15803d;
   font-weight: 700;
 }
 
@@ -430,8 +437,8 @@
 }
 
 .footer {
-  background-color: #baa2f3;
-  border-bottom: 1px solid #baa2f3;
+  background-color: var(--color-primario);
+  border-bottom: 1px solid var(--color-primario);
   padding: 20px 32px;
   text-align: center;
   margin-top: 0; 
@@ -649,7 +656,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748b;
+  color: #475569;
   margin: 0 0 10px 0;
   font-weight: 700;
 }
@@ -711,7 +718,7 @@
 
 .filter-reset-btn {
   width: 100%;
-  background-color: #8b5cf6;
+  background-color: #7c3aed;
   color: #ffffff;
   border: none;
   padding: 10px;
@@ -723,7 +730,7 @@
 }
 
 .filter-reset-btn:hover {
-  background-color: #7c3aed;
+  background-color: #6d28d9;
 }
 
 @keyframes fade-in-up {
@@ -825,4 +832,358 @@
 .header-login-btn:hover {
   background-color: #f5f3ff;
   transform: scale(1.03);
+}
+/* ===== Carrito estilo Mercado Libre (pegar al FINAL de App.css) ===== */
+
+.ml-cart {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.ml-cart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Lista de productos */
+.ml-list {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.ml-item {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ml-item:last-child {
+  border-bottom: none;
+}
+
+.ml-thumb-link {
+  flex-shrink: 0;
+}
+
+.ml-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  display: block;
+}
+
+.ml-thumb-sm {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.ml-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ml-item-name {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.ml-item-name:hover {
+  text-decoration: underline;
+}
+
+.ml-item-unit {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.ml-item-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* Selector de cantidad */
+.ml-qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.ml-qty button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background-color: #ffffff;
+  font-size: 18px;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.ml-qty button:hover:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.ml-qty button:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.ml-qty span {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.ml-stock {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ml-stock.alerta {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.ml-remove {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ml-remove:hover {
+  text-decoration: underline;
+}
+
+.ml-item-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Resumen de compra */
+.ml-summary {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 20px;
+  position: sticky;
+  top: 16px;
+}
+
+.ml-summary-title {
+  margin: 0 0 16px 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.ml-summary-row {
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+  font-size: 14px;
+  padding-bottom: 12px;
+}
+
+.ml-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 0 18px 0;
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+/* Celular */
+@media (max-width: 800px) {
+  .ml-cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ml-summary {
+    position: static;
+  }
+
+  .ml-item {
+    flex-wrap: wrap;
+  }
+
+  .ml-thumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .ml-item-price {
+    width: 100%;
+    text-align: right;
+  }
+}
+/* ===== Avisos del pedido (reemplazan a los alert) — pegar al FINAL de App.css ===== */
+
+/* Mensaje rojo cuando no se pudo guardar el pedido */
+.checkout-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 4px 0 16px 0;
+}
+
+.checkout-error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Pantalla de "Pedido realizado" */
+.checkout-exito {
+  max-width: 480px;
+  margin: 40px auto 0;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 32px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: checkout-aparece 0.25s ease-out;
+}
+
+.checkout-exito-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.checkout-exito h3 {
+  margin: 4px 0 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.checkout-exito p {
+  margin: 0 0 8px 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@keyframes checkout-aparece {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* ===== Mis pedidos ===== */
+.pedidos-lista { display: flex; flex-direction: column; gap: 12px; }
+
+.pedido-card {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pedido-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.pedido-header:hover { background-color: #f8fafc; }
+
+.pedido-header-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pedido-numero { font-weight: 700; font-size: 16px; color: #0f172a; }
+.pedido-fecha { font-size: 13px; color: #64748b; }
+
+.pedido-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pedido-status-pendiente { background-color: #fef3c7; color: #92400e; }
+.pedido-status-pagado    { background-color: #dcfce7; color: #166534; }
+.pedido-status-rechazado { background-color: #fee2e2; color: #991b1b; }
+.pedido-status-cancelado { background-color: #e2e8f0; color: #475569; }
+
+.pedido-total { font-size: 18px; font-weight: 800; color: #0f172a; white-space: nowrap; }
+.pedido-chevron { color: #94a3b8; }
+
+.pedido-detalles {
+  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pedido-detalle { display: flex; align-items: center; gap: 12px; }
+.pedido-detalle-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pedido-detalle-subtotal { font-weight: 700; color: #0f172a; white-space: nowrap; }
+.pedido-acciones { display: flex; justify-content: flex-end; padding-top: 4px; }
+
+@media (max-width: 600px) {
+  .pedido-header { flex-wrap: wrap; gap: 8px 12px; }
+  .pedido-header-info { flex-basis: 100%; }
+  .pedido-total { margin-left: auto; }
+}
+/* ====== ÍCONOS (lucide-react) ====== */
+.icono {
+  display: inline-block;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
 }
