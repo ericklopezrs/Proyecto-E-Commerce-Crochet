@@ -5,7 +5,7 @@ import react from '@astrojs/react';
 import netlify from '@astrojs/netlify';
 
 import vercel from '@astrojs/vercel';
-import AstroPWA from '@vite-pwa/astro';
+import { AstroPWAIntegration as AstroPWA } from '@vite-pwa/astro';
 
 // Colores de la marca: los mismos tokens que están en src/styles/App.css (:root)
 const COLOR_PRIMARIO = '#baa2f3'; // --color-primario (header y footer)
