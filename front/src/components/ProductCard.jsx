@@ -1,25 +1,44 @@
+import { Eye, ShoppingCart } from 'lucide-react';
+
 export default function ProductCard({ producto, qty, availableStock, onView, onAdd }) {
   return (
-    <div 
+    <div
       className="product-card"
       style={{ cursor: 'pointer' }}
       onClick={() => onView(producto)}
     >
-      <img src={producto.imagen || 'https://via.placeholder.com/250'} alt={producto.nombre} className="product-image" />
+      <img
+        src={producto.imagen || 'https://via.placeholder.com/250'}
+        alt={producto.nombre}
+        className="product-image"
+        width="250"
+        height="180"
+        loading="lazy"
+        decoding="async"
+      />
       <div className="product-info">
         <div>
-          <h4 className="product-name">{producto.nombre}</h4>
+          <h3 className="product-name">{producto.nombre}</h3>
           <p className="product-desc">{producto.descripcion}</p>
           <div className="product-stock">Stock: <span>{availableStock} uds</span></div>
         </div>
         <div className="product-footer-col" onClick={(e) => e.stopPropagation()}>
           <span className="product-price">${producto.precio} MXN</span>
           <div className="card-actions">
-            <button className="action-btn" onClick={() => onView(producto)}>
-              <i className="fa-solid fa-eye"></i>
+            <button
+              className="action-btn"
+              onClick={() => onView(producto)}
+              aria-label={`Ver detalles de ${producto.nombre}`}
+            >
+              <Eye size="1em" className="icono" />
             </button>
-            <button className="primary-btn-sm" onClick={() => onAdd(producto, qty)} disabled={availableStock === 0}>
-              <i className="fa-solid fa-cart-plus"></i> Agregar
+            <button
+              className="primary-btn-sm"
+              onClick={() => onAdd(producto, qty)}
+              disabled={availableStock === 0}
+              aria-label={`Agregar ${producto.nombre} al carrito`}
+            >
+              <ShoppingCart size="1em" className="icono" /> Agregar
             </button>
           </div>
         </div>

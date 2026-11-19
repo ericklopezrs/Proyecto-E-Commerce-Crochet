@@ -1,4 +1,5 @@
-import { Lock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Lock, ChartLine, DollarSign, PackageOpen, Users, Heart } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import AdminNav from '../AdminNav.jsx';
 
@@ -166,22 +167,77 @@ export default function AdminDashboardIsland() {
     );
   }
 
+  // KPIs armados a partir de la respuesta del backend
+  const kpis = datos ? [
+    {
+      icono: DollarSign,
+      etiqueta: 'Ventas del mes',
+      valor: fmtMXN(datos.kpis.ventas_mes),
+      cambio: datos.kpis.cambio_ventas,
+    },
+    {
+      icono: PackageOpen,
+      etiqueta: 'Pedidos',
+      valor: String(datos.kpis.pedidos_mes),
+      cambio: datos.kpis.cambio_pedidos,
+    },
+    {
+      icono: Users,
+      etiqueta: 'Clientes',
+      valor: String(datos.kpis.clientes_total),
+      cambio: null,
+    },
+    {
+      icono: Heart,
+      etiqueta: 'Peluches en catálogo',
+      valor: String(datos.kpis.peluches_catalogo),
+      cambio: null,
+    },
+  ] : [];
+
   return (
     <div className="main-container">
       <main className="content admin-content">
         <h3 className="section-title">
-          <i className="fa-solid fa-chart-line" style={{ marginRight: '8px' }}></i>
+          <ChartLine size="1em" className="icono" style={{ marginRight: '8px' }} />
           Panel de administración
         </h3>
         <p className="admin-aviso">Datos de ejemplo: las gráficas todavía no están conectadas a la base de datos.</p>
 
-        <section className="admin-kpis">
-          {KPIS.map((k) => (
-            <div key={k.etiqueta} className="admin-kpi">
-              <i className={`fa-solid ${k.icono} admin-kpi-icono`}></i>
-              <div>
-                <div className="admin-kpi-valor">{k.valor}</div>
-                <div className="admin-kpi-etiqueta">{k.etiqueta}</div>
+        {cargando && <p className="admin-aviso">Cargando datos…</p>}
+
+        {error && (
+          <p className="admin-aviso" style={{ color: '#dc2626' }}>
+            Error: {error}
+          </p>
+        )}
+
+        {datos && (
+          <>
+            <section className="admin-kpis">
+              {kpis.map((k) => (
+                <div key={k.etiqueta} className="admin-kpi">
+                  <span className="admin-kpi-icono"><k.icono size="1em" /></span>
+                  <div>
+                    <div className="admin-kpi-valor">{k.valor}</div>
+                    <div className="admin-kpi-etiqueta">{k.etiqueta}</div>
+                  </div>
+                  {k.cambio != null && (
+                    <span
+                      className="admin-kpi-cambio"
+                      style={{ color: k.cambio >= 0 ? '#16a34a' : '#dc2626' }}
+                    >
+                      {k.cambio >= 0 ? '+' : ''}{k.cambio.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            <section className="admin-graficas">
+              <div className="cart-box">
+                <h4 className="admin-grafica-titulo">Ventas por mes (MXN)</h4>
+                <GraficaBarras datos={datos.ventas_por_mes} />
               </div>
               {k.cambio && <span className="admin-kpi-cambio">{k.cambio}</span>}
             </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Lock, Search } from 'lucide-react';
+import { Search, Lock, EyeOff, RotateCcw, PackageOpen, Pen, Plus } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
   obtenerProductosAdmin,
@@ -144,19 +144,29 @@ export default function AdminProductosIsland() {
                       onClick={() => setPorDesactivar(p)}
                       disabled={trabajando === p.id}
                     >
-                      <i className="fa-solid fa-eye-slash"></i> Desactivar
+                      <Pen size="1em" className="icono" /> Editar
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="adm-btn-suave"
-                      onClick={() => cambiarEstado(p, true)}
-                      disabled={trabajando === p.id}
-                    >
-                      <i className="fa-solid fa-rotate-left"></i>{' '}
-                      {trabajando === p.id ? 'Restaurando...' : 'Restaurar'}
-                    </button>
-                  )}
+                    {p.activo ? (
+                      <button
+                        type="button"
+                        className="adm-btn-peligro-suave"
+                        onClick={() => setPorDesactivar(p)}
+                        disabled={trabajando === p.id}
+                      >
+                        <EyeOff size="1em" className="icono" /> Desactivar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="adm-btn-suave"
+                        onClick={() => cambiarEstado(p, true)}
+                        disabled={trabajando === p.id}
+                      >
+                        <RotateCcw size="1em" className="icono" />{' '}
+                        {trabajando === p.id ? 'Restaurando...' : 'Restaurar'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -172,7 +182,7 @@ export default function AdminProductosIsland() {
         <AdminNav activa="productos" />
 
         <h3 className="section-title">
-          <i className="fa-solid fa-box-open" style={{ marginRight: '8px' }}></i>
+          <PackageOpen size="1em" className="icono" style={{ marginRight: '8px' }} />
           Productos
           {productos && ` (${productos.filter((p) => p.activo).length} activos de ${productos.length})`}
         </h3>
@@ -192,6 +202,14 @@ export default function AdminProductosIsland() {
             <option value="activos">Solo activos</option>
             <option value="inactivos">Solo inactivos</option>
           </select>
+          <button
+            type="button"
+            className="adm-btn-primario"
+            onClick={() => setFormulario({ producto: null })}
+            disabled={productos === null}
+          >
+            <Plus size="1em" className="icono" /> Nuevo producto
+          </button>
         </div>
 
         {contenido}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Lock, CircleCheck, CircleAlert, ShoppingBag, Clock } from 'lucide-react';
+import { ShoppingBag, Lock, CircleAlert, Clock, CircleCheck, Truck, ShoppingCart, CreditCard, ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
@@ -226,7 +226,146 @@ export default function CheckoutIsland() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </Aviso>
+    );
+  }
+
+  if (usandoPedido && (cargandoPedido || (!pedidoExistente && !errorCarga))) {
+    return <Aviso><div className="pc-card pc-empty">Cargando tu pedido...</div></Aviso>;
+  }
+  if (usandoPedido && (errorCarga || pedidoExistente.status !== 'PENDIENTE')) {
+    return (
+      <Vacio
+        icono={<Info size="1em" className="icono" />}
+        texto={errorCarga || 'Este pedido ya no está pendiente de pago.'}
+        href="/mis-pedidos"
+        boton="Ir a mis pedidos"
+      />
+    );
+  }
+
+  if (!usandoPedido && cart.length === 0) {
+    return (
+      <Vacio
+        icono={<ShoppingCart size="1em" className="icono" />}
+        texto="Tu carrito está vacío."
+        href="/"
+        boton="Ver productos"
+      />
+    );
+  }
+
+  return (
+    <Aviso>
+      <a href={usandoPedido ? '/mis-pedidos' : '/carrito'} className="pc-back">
+        <ArrowLeft size="1em" className="icono" />
+        {usandoPedido ? 'Volver a mis pedidos' : 'Volver al carrito'}
+      </a>
+
+      <h3 className="pc-title">
+        <ClipboardCheck size="1em" className="icono" />
+        Confirmar y pagar
+      </h3>
+
+      <section className="pc-card">
+        <h4 className="pc-card-title">
+          <ShoppingBag size="1em" className="icono" />
+          Resumen del pedido{usandoPedido ? ` #${pedidoExistente.id}` : ''}
+        </h4>
+
+        {lineas.map((l) => (
+          <div key={l.id} className="pc-item">
+            <img
+              className="pc-thumb"
+              src={l.imagen || IMAGEN_RESPALDO}
+              alt={l.nombre}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = IMAGEN_RESPALDO;
+              }}
+            />
+            <div className="pc-item-info">
+              <span className="pc-item-name">{l.nombre}</span>
+              <span className="pc-item-sub">Cantidad: {l.cantidad}</span>
+            </div>
+            <span className="pc-item-price">{mxn(l.subtotal)}</span>
+          </div>
+        ))}
+
+        <div className="pc-total">
+          <span>Total a pagar</span>
+          <strong>{mxn(total)}</strong>
+        </div>
+        <div style={{ textAlign: 'right', color: '#64748b', fontSize: '14px' }}>
+          <PrecioUSD mxn={total} />
+        </div>
+      </section>
+
+      {!usandoPedido && (
+        <section className="pc-card">
+          <h4 className="pc-card-title">
+            <Truck size="1em" className="icono" />
+            Dirección de envío
+          </h4>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <input
+              style={campo}
+              inputMode="numeric"
+              placeholder="Código postal (5 dígitos)"
+              value={dir.cp}
+              onChange={(e) => handleCP(e.target.value)}
+            />
+            {errorCP && <small style={{ color: '#dc2626' }}>{errorCP}</small>}
+            {zona && (
+              <>
+                <input style={campo} value={`${zona.municipio}, ${zona.estado}`} readOnly />
+                <select
+                  style={campo}
+                  value={dir.colonia}
+                  onChange={(e) => setDir({ ...dir, colonia: e.target.value })}
+                >
+                  {zona.colonias.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            <input
+              style={campo}
+              placeholder="Calle y número"
+              value={dir.calle}
+              onChange={(e) => setDir({ ...dir, calle: e.target.value })}
+            />
+          </div>
+        </section>
+      )}
+
+      <section className="pc-card">
+        <h4 className="pc-card-title">
+          <CreditCard size="1em" className="icono" />
+          Datos de tu tarjeta
+        </h4>
+
+        {errorPedido && (
+          <div className="pc-alert" role="alert" style={{ marginTop: 0, marginBottom: '14px' }}>
+            <CircleAlert size={18} style={{ flexShrink: 0 }} />
+            <span>{errorPedido}</span>
+          </div>
+        )}
+
+        {!usandoPedido && !direccionLista && (
+          <p className="pc-muted" style={{ marginTop: 0 }}>
+            Completa tu dirección de envío para poder pagar.
+          </p>
+        )}
+
+        {!brickListo && <p className="pc-muted">Cargando formulario de pago...</p>}
+        <div id={BRICK_ID}></div>
+        <p className="pc-muted" style={{ marginTop: '12px', textAlign: 'center' }}>
+          <Lock size="1em" className="icono" style={{ marginRight: '6px' }} />
+          Pago seguro procesado por Mercado Pago
+        </p>
+      </section>
+    </Aviso>
   );
 }
