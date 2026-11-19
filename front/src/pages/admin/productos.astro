@@ -1,0 +1,13 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminProductosIsland from '../../components/islands/AdminProductosIsland.jsx';
+import { getCategorias } from '../../lib/data';
+import '../../styles/admin.css';
+import '../../styles/admin-productos.css';
+
+const categorias = await getCategorias();
+---
+
+<Layout title="Productos — Panel de administración" categorias={categorias}>
+    <AdminProductosIsland client:load />
+</Layout>

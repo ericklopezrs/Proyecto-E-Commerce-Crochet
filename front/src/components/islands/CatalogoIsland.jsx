@@ -1,15 +1,84 @@
-import { useState } from 'react';
+import { Search, Store } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useUiStore } from '../../store/useUiStore.js';
 import ContextPanel from '../ContextPanel.jsx';
 import ProductCard from '../ProductCard.jsx';
+import { suscribirseAProductos } from '../../lib/suscripcion.js';
+import { fetchGraphQL } from '../../graphql/cliente.js';
 import Sidebar from '../Sidebar.jsx';
 import { filtrarProductos, DEFAULT_FILTERS } from '../../utils/filters.js';
 
-export default function CatalogoIsland({ categorias }) {
+const QUERY_CATEGORIAS = `
+  query {
+    categorias {
+      id nombre descripcion
+      productos { id nombre precio imagen descripcion stock }
+    }
+  }
+`;
+
+// Aplica un cambio de producto sin mutar el estado anterior
+function aplicarCambio(categorias, p) {
+  const mismoProducto = (x) => String(x.id) === String(p.id);
+
+  // Desactivado: se quita de todas las categorías
+  if (!p.activo) {
+    return categorias.map((c) => ({
+      ...c,
+      productos: (c.productos || []).filter((x) => !mismoProducto(x)),
+    }));
+  }
+
+  const producto = {
+    id: p.id,
+    nombre: p.nombre,
+    precio: p.precio,
+    imagen: p.imagen,
+    descripcion: p.descripcion,
+    stock: p.stock,
+  };
+
+  return categorias.map((c) => {
+    const lista = c.productos || [];
+    const esDestino = String(c.id) === String(p.categoria_id);
+
+    // Si cambió de categoría, se quita de las demás
+    if (!esDestino) return { ...c, productos: lista.filter((x) => !mismoProducto(x)) };
+
+    const idx = lista.findIndex(mismoProducto);
+    if (idx >= 0) {
+      const copia = [...lista];
+      copia[idx] = producto;
+      return { ...c, productos: copia };
+    }
+    return {
+      ...c,
+      productos: [...lista, producto].sort((a, b) => Number(a.id) - Number(b.id)),
+    };
+  });
+}
+
+export default function CatalogoIsland({ categorias: categoriasIniciales }) {
   const { cart, getTotal, addToCart } = useCartStore();
   const { searchTerm, setSearchTerm, selectedCategoria } = useUiStore();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [categorias, setCategorias] = useState(categoriasIniciales);
+
+  useEffect(() => {
+    const cerrar = suscribirseAProductos({
+      onProducto: (p) => setCategorias((prev) => aplicarCambio(prev, p)),
+      onReconectar: async () => {
+        try {
+          const data = await fetchGraphQL(QUERY_CATEGORIAS);
+          if (data?.categorias) setCategorias(data.categorias);
+        } catch {
+          /* se intentará de nuevo en la siguiente reconexión */
+        }
+      },
+    });
+    return cerrar;
+  }, []);
 
   const handleFilterChange = (name, value) =>
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -41,9 +110,16 @@ export default function CatalogoIsland({ categorias }) {
       <main className="content">
         <div className="ml-promo-banner-container">
           <img
-            src="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=1200&q=80"
-            alt="Banner Promocional"
+            src="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=60"
+            srcSet="https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=480&q=60 480w, https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=60 800w, https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=1200&q=60 1200w"
+            sizes="(max-width: 768px) 60vw, 75vw"
+            alt="Peluches de crochet hechos a mano"
             className="ml-promo-banner-img"
+            width="1200"
+            height="400"
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
           />
         </div>
 
@@ -53,17 +129,14 @@ export default function CatalogoIsland({ categorias }) {
           onGoCart={() => (window.location.href = '/carrito')}
         />
 
-        <h3 className="section-title">
-          <i className="fa-solid fa-store" style={{ marginRight: '8px' }}></i>
+        <h2 className="section-title">
+          <Store size="1em" className="icono" style={{ marginRight: '8px' }} />
           {tituloCatalogo}
-        </h3>
+        </h2>
 
         {filteredProductos.length === 0 ? (
           <div className="empty-cart">
-            <i
-              className="fa-solid fa-magnifying-glass"
-              style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}
-            ></i>
+            <Search size="1em" className="icono" style={{ fontSize: '32px', display: 'block', margin: '0 auto 12px' }} />
             No se encontraron productos {searchTerm && <> para "{searchTerm}"</>}.
             <div
               style={{

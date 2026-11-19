@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { LayoutGrid, LogIn, LogOut, Package, Search, ShoppingCart, Wrench } from 'lucide-react';
 import logo from '../assets/logo.png';
+import { useState, useRef } from 'react';
 
 export default function TopBar({
   searchTerm,
@@ -39,15 +40,15 @@ export default function TopBar({
         {}
         <div className="header-side header-side-left">
           <div className="brand" onClick={onGoHome} style={{ cursor: 'pointer' }}>
-            <img src={logo.src} alt="Logo" className="brand-logo-img" />
+            <img src={logo.src} alt="" width="70" height="70" className="brand-logo-img" />
             <h1 className="brand-title">Peluches Crochet</h1>
           </div>
         </div>
 
         {}
         <div className={`search-expand ${isSearchOpen ? 'open' : ''}`}>
-          <button className="search-toggle" onClick={toggleSearch} title="Buscar">
-            <i className="fa-solid fa-magnifying-glass"></i>
+          <button className="search-toggle" onClick={toggleSearch} title="Buscar" aria-label="Buscar productos">
+            <Search size="1em" className="icono" />
           </button>
 
           <input
@@ -59,6 +60,7 @@ export default function TopBar({
             onKeyDown={handleKeyDown}
             onBlur={() => { if (!searchTerm) setIsSearchOpen(false); }}
             className="search-input"
+            aria-label="Buscar productos"
           />
         </div>
 
@@ -69,28 +71,36 @@ export default function TopBar({
               <span className="header-user-name">
                 Hola, {usuario.nombre.split(' ')[0]}
               </span>
-              {usuario.rol === 'ADMIN' && (
-                  <a href="/admin" className="header-login-btn" title="Panel de administración">
-                    <i className="fa-solid fa-chart-line"></i>
+              <a href="/mis-pedidos" className="header-login-btn" title="Mis pedidos" aria-label="Mis pedidos">
+                <Package size="1em" className="icono" />
+              </a>
+                {usuario.rol === 'ADMIN' && (
+                  <a href="/admin/productos" className="header-login-btn" title="Backoffice" aria-label="Backoffice">
+                    <Wrench size="1em" className="icono" />
                   </a>
                 )}
               <button
                 className="header-logout-btn"
                 onClick={onLogout}
                 title="Cerrar sesión"
+                aria-label="Cerrar sesión"
               >
-                <i className="fa-solid fa-right-from-bracket"></i>
+                <LogOut size="1em" className="icono" />
               </button>
             </div>
           ) : (
             <a href="/login" className="header-login-btn">
-              <i className="fa-solid fa-right-to-bracket" style={{ marginRight: '6px' }}></i>
+              <LogIn size="1em" className="icono" style={{ marginRight: '6px' }} />
               Iniciar Sesión
             </a>
           )}
 
-          <button className="header-cart-button" onClick={onGoCart}>
-            <i className="fa-solid fa-cart-shopping"></i>
+          <button
+            className="header-cart-button"
+            onClick={onGoCart}
+            aria-label={`Ver carrito (${totalItemsCount} artículos)`}
+          >
+            <ShoppingCart size="1em" className="icono" />
             {totalItemsCount > 0 && (
               <span className="floating-cart-badge">{totalItemsCount}</span>
             )}
@@ -104,7 +114,7 @@ export default function TopBar({
           className={`category-chip ${selectedCategoria === 'TODAS' ? 'active' : ''}`}
           onClick={() => onSelectCategoria('TODAS')}
         >
-          <i className="fa-solid fa-border-all" style={{ marginRight: '6px' }}></i>
+          <LayoutGrid size="1em" className="icono" style={{ marginRight: '6px' }} />
           Todo
         </button>
 

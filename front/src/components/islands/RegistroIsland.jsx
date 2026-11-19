@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { User, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle, Loader2, CircleCheck } from 'lucide-react';
 
 import { registrarUsuario } from '../../services/auth.js';
-
-
+import { showToastAfterRedirect } from '../../utils/toast.js';
 
 export default function RegistroIsland() {
   const [nombre, setNombre] = useState('');
@@ -13,6 +12,15 @@ export default function RegistroIsland() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cuentaCreada, setCuentaCreada] = useState(false);
+
+  useEffect(() => {
+    if (!cuentaCreada) return;
+    const espera = setTimeout(() => {
+      window.location.href = '/login';
+    }, 2500);
+    return () => clearTimeout(espera);
+  }, [cuentaCreada]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,13 +47,34 @@ export default function RegistroIsland() {
 
   try {
     await registrarUsuario(nombre, email, password);
-    alert('¡Cuenta creada! Ahora inicia sesión 🧸');
-    window.location.href = '/login'; 
+    showToastAfterRedirect('¡Cuenta creada! Ahora inicia sesión 🧸', 'success');
+    window.location.href = '/login';
   } catch (err) {
-    setError(err.message); 
+    setError(err.message);
     setLoading(false);
   }
   };
+
+  if (cuentaCreada) {
+    return (
+      <div className="main-container">
+        <main className="content">
+          <div className="login-page">
+            <div className="login-card">
+              <div className="login-header">
+                <span className="login-title-icon exito"><CircleCheck size={22} /></span>
+                <h2 className="login-title">¡Cuenta creada!</h2>
+                <p className="login-subtitle">Ya puedes iniciar sesión. Te llevamos en un momento...</p>
+              </div>
+              <a href="/login" className="login-submit" style={{ textDecoration: 'none' }}>
+                Ir a iniciar sesión
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="main-container">

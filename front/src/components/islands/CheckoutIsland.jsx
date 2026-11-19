@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Lock, CircleCheck, CircleAlert, ShoppingBag, Clock } from 'lucide-react';
+import { ShoppingBag, Lock, CircleAlert, Clock, CircleCheck, Truck, ShoppingCart, CreditCard, ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore.js';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import {
@@ -7,23 +7,101 @@ import {
   pagarPedido,
   obtenerMiPedido,
 } from '../../services/pedidos.js';
+import { buscarPorCP } from '../../services/direccion.js';
+import PrecioUSD from '../PrecioUSD.jsx';
 import '../../styles/pedidos.css';
 
 const PUBLIC_KEY = import.meta.env.PUBLIC_MP_PUBLIC_KEY;
 const BRICK_ID = 'cardPaymentBrick_container';
 
-// Mensajes amigables para los status_detail más comunes de rechazo.
+const campo = {
+  width: '100%', padding: '10px', border: '1px solid #cbd5e1',
+  borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box',
+};
+
+function cargarSdkMP() {
+  if (window.MercadoPago) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://sdk.mercadopago.com/js/v2';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar el SDK de Mercado Pago'));
+    document.head.appendChild(script);
+  });
+}
+
+
+// status_detail que manda Mercado Pago cuando el pago falla.
+// Algunos códigos no vienen en la documentación de Orders, así que también
+// incluimos los nombres viejos (cc_rejected_*) por si llegan así.
 const MOTIVOS = {
-  rejected_by_issuer: 'Tu banco rechazó el pago. Prueba con otra tarjeta.',
-  failed: 'El pago no pasó. Prueba con otra tarjeta.',
-  cc_rejected_insufficient_amount: 'La tarjeta no tiene fondos suficientes.',
-  cc_rejected_bad_filled_security_code: 'El código de seguridad es incorrecto.',
-  cc_rejected_bad_filled_date: 'La fecha de vencimiento es incorrecta.',
-  cc_rejected_bad_filled_other: 'Revisa los datos de la tarjeta.',
-  cc_rejected_call_for_authorize: 'Tu banco necesita autorizar el pago; llámales y vuelve a intentar.',
-  cc_rejected_card_disabled: 'La tarjeta está deshabilitada.',
-  cc_rejected_duplicated_payment: 'Ya hiciste un pago igual hace poco.',
-  cc_rejected_max_attempts: 'Superaste el máximo de intentos.',
+  // OTHE
+  rejected_by_issuer: 'Rechazado por error general',
+  cc_rejected_other_reason: 'Rechazado por error general',
+
+  // FUND
+  insufficient_amount: 'Rechazado por importe insuficiente',
+  card_insufficient_amount: 'Rechazado por importe insuficiente',
+  cc_rejected_insufficient_amount: 'Rechazado por importe insuficiente',
+
+  // SECU / EXPI / FORM / CARD
+  bad_filled_card_data: 'Rechazado debido a un error de formulario',
+  cc_rejected_bad_filled_other: 'Rechazado debido a un error de formulario',
+  cc_rejected_bad_filled_security_code: 'Rechazado por código de seguridad inválido',
+  cc_rejected_bad_filled_date: 'Rechazado debido a un problema de fecha de vencimiento',
+  cc_rejected_bad_filled_card_number: 'Rechazado por falta de card_number',
+
+  // CALL
+  required_call_for_authorize: 'Rechazado con validación para autorizar',
+  cc_rejected_call_for_authorize: 'Rechazado con validación para autorizar',
+
+  // INST
+  invalid_installments: 'Rechazado por cuotas invalidas',
+  cc_rejected_invalid_installments: 'Rechazado por cuotas invalidas',
+
+  // DUPL
+  duplicated_payment: 'Rechazado por pago duplicado',
+  cc_rejected_duplicated_payment: 'Rechazado por pago duplicado',
+
+  // LOCK
+  card_disabled: 'Rechazado por tarjeta deshabilitada',
+  cc_rejected_card_disabled: 'Rechazado por tarjeta deshabilitada',
+
+  // CTNA
+  card_type_not_allowed: 'Rechazado por tipo de tarjeta no permitida',
+  cc_rejected_card_type_not_allowed: 'Rechazado por tipo de tarjeta no permitida',
+
+  // ATTE
+  max_attempts_exceeded: 'Rechazado debido a intentos excedidos del pin de la tarjeta',
+  cc_rejected_max_attempts: 'Rechazado debido a intentos excedidos del pin de la tarjeta',
+
+  // BLAC
+  high_risk: 'Rechazado por estar en lista negra',
+  cc_rejected_blacklist: 'Rechazado por estar en lista negra',
+  cc_rejected_high_risk: 'Rechazado por estar en lista negra',
+
+  // UNSU
+  unsupported: 'No soportado',
+  cc_rejected_unsupported: 'No soportado',
+
+  // TEST
+  amount_limit_exceeded: 'Usado para aplicar regla de montos',
+
+  // Sin mensaje en tu lista: se quedan los anteriores
+  invalid_card_token: 'Los datos de la tarjeta expiraron. Vuelve a capturarlos.',
+  processing_error: 'Hubo un error al procesar el pago. Intenta de nuevo en unos minutos.',
+  '3ds_challenge_expired': 'Se acabó el tiempo para validar el pago con tu banco.',
+  expired: 'El pago expiró antes de completarse.',
+  canceled: 'El pago fue cancelado.',
+};
+
+// CONT
+const MOTIVOS_PENDIENTE = {
+  in_process: 'Pendiente de pago',
+  pending_review_manual: 'Pendiente de pago',
+  in_review: 'Pendiente de pago',
+  contingency: 'Pendiente de pago',
+  pending_contingency: 'Pendiente de pago',
 };
 
 const mxn = (n) =>
@@ -71,6 +149,28 @@ export default function CheckoutIsland() {
   const [errorPedido, setErrorPedido] = useState('');
   const [brickListo, setBrickListo] = useState(false);
   const [resultado, setResultado] = useState(null); // { estado, total, motivo }
+
+  // ---------- dirección de envío (solo para pedidos nuevos) ----------
+  const [dir, setDir] = useState({ cp: '', colonia: '', calle: '' });
+  const [zona, setZona] = useState(null);
+  const [errorCP, setErrorCP] = useState('');
+
+  const handleCP = async (valor) => {
+    const cp = valor.replace(/\D/g, '').slice(0, 5);
+    setDir((d) => ({ ...d, cp, colonia: '' }));
+    setZona(null);
+    setErrorCP('');
+    if (cp.length !== 5) return;
+    try {
+      const info = await buscarPorCP(cp);
+      setZona(info);
+      setDir((d) => ({ ...d, colonia: info.colonias[0] ?? '' }));
+    } catch (err) {
+      setErrorCP(err.message);
+    }
+  };
+
+  const direccionLista = Boolean(zona && dir.colonia && dir.calle.trim().length >= 5);
 
   // ?pedido=ID  -> pagar un pedido que ya existía (botón "Pagar ahora" de Mis pedidos)
   const [pedidoParam, setPedidoParam] = useState(null);
@@ -128,6 +228,14 @@ export default function CheckoutIsland() {
   // ---------- lo que pasa al darle "Pagar" en el Brick ----------
   submitRef.current = async (formData) => {
     setErrorPedido('');
+
+    // Un pedido nuevo necesita dirección antes de cobrar
+    if (!usandoPedido && !pedidoIdRef.current && !direccionLista) {
+      const msg = 'Completa tu dirección de envío antes de pagar.';
+      setErrorPedido(msg);
+      throw new Error(msg); // el Brick vuelve a habilitar el botón
+    }
+
     try {
       let pedidoId = usandoPedido ? pedidoExistente.id : pedidoIdRef.current;
 
@@ -142,6 +250,7 @@ export default function CheckoutIsland() {
           usuarioId: usuario.id,
           total: parseFloat(getTotal()),
           items,
+          direccion: `${dir.calle.trim()}, ${dir.colonia}, CP ${dir.cp}, ${zona.municipio}, ${zona.estado}`,
         });
         pedidoId = pedido.id;
         pedidoIdRef.current = pedidoId;
@@ -159,18 +268,25 @@ export default function CheckoutIsland() {
         identificationNumber: formData.payer?.identification?.number,
       });
 
+      console.log('Resultado Mercado Pago:', pago.mp_status, pago.mp_status_detail);
+
       if (pago.pedido_status === 'PAGADO') {
         if (!usandoPedido) clearCart();
         setResultado({ estado: 'PAGADO', total });
       } else if (pago.pedido_status === 'PENDIENTE') {
-        setResultado({ estado: 'PENDIENTE', total, pedidoId });
+        setResultado({
+          estado: 'PENDIENTE',
+          total,
+          pedidoId,
+          motivo: MOTIVOS_PENDIENTE[pago.mp_status_detail] ?? '',
+        });
       } else {
         // RECHAZADO / CANCELADO: ese pedido ya murió (el stock se regresó)
         pedidoIdRef.current = null;
         setResultado({
           estado: pago.pedido_status,
           total,
-          motivo: MOTIVOS[pago.mp_status_detail] ?? '',
+          motivo: MOTIVOS[pago.mp_status_detail] ?? 'Rechazado por error general',
         });
       }
     } catch (err) {
@@ -198,8 +314,7 @@ export default function CheckoutIsland() {
         return;
       }
       try {
-        const { loadMercadoPago } = await import('@mercadopago/sdk-js');
-        await loadMercadoPago();
+        await cargarSdkMP();
         if (cancelado) return;
 
         const mp = new window.MercadoPago(PUBLIC_KEY, { locale: 'es-MX' });
@@ -283,23 +398,20 @@ export default function CheckoutIsland() {
           </div>
           {ok && (
             <>
-              <h3>¡Pago aprobado!</h3>
+              <h3>Pago aprobado</h3>
               <p>Recibimos tu pago de <strong>{mxn(resultado.total)}</strong>. ¡Gracias por tu compra! 🧶</p>
             </>
           )}
           {pendiente && (
             <>
-              <h3>Tu pago está en proceso</h3>
-              <p>Mercado Pago aún lo está validando. Esta pantalla se actualiza sola; también lo ves en “Mis pedidos”.</p>
+              <h3>{resultado.motivo || 'Pendiente de pago'}</h3>
+              <p>Esta pantalla se actualiza sola; también lo ves en “Mis pedidos”.</p>
             </>
           )}
           {!ok && !pendiente && (
             <>
-              <h3>No se pudo completar el pago</h3>
-              <p>
-                {resultado.estado === 'RECHAZADO' ? 'Tu pago fue rechazado.' : 'El pago se canceló.'}{' '}
-                {resultado.motivo} Tu carrito sigue intacto, puedes intentarlo de nuevo.
-              </p>
+              <h3>{resultado.motivo || 'Rechazado por error general'}</h3>
+              <p>Tu carrito sigue intacto, puedes intentarlo de nuevo.</p>
             </>
           )}
           <div className="pc-actions">
@@ -325,7 +437,7 @@ export default function CheckoutIsland() {
   if (usandoPedido && (errorCarga || pedidoExistente.status !== 'PENDIENTE')) {
     return (
       <Vacio
-        icono={<i className="fa-solid fa-circle-info"></i>}
+        icono={<Info size="1em" className="icono" />}
         texto={errorCarga || 'Este pedido ya no está pendiente de pago.'}
         href="/mis-pedidos"
         boton="Ir a mis pedidos"
@@ -336,7 +448,7 @@ export default function CheckoutIsland() {
   if (!usandoPedido && cart.length === 0) {
     return (
       <Vacio
-        icono={<i className="fa-solid fa-cart-flatbed"></i>}
+        icono={<ShoppingCart size="1em" className="icono" />}
         texto="Tu carrito está vacío."
         href="/"
         boton="Ver productos"
@@ -347,18 +459,18 @@ export default function CheckoutIsland() {
   return (
     <Aviso>
       <a href={usandoPedido ? '/mis-pedidos' : '/carrito'} className="pc-back">
-        <i className="fa-solid fa-arrow-left"></i>
+        <ArrowLeft size="1em" className="icono" />
         {usandoPedido ? 'Volver a mis pedidos' : 'Volver al carrito'}
       </a>
 
       <h3 className="pc-title">
-        <i className="fa-solid fa-clipboard-check"></i>
+        <ClipboardCheck size="1em" className="icono" />
         Confirmar y pagar
       </h3>
 
       <section className="pc-card">
         <h4 className="pc-card-title">
-          <i className="fa-solid fa-bag-shopping"></i>
+          <ShoppingBag size="1em" className="icono" />
           Resumen del pedido{usandoPedido ? ` #${pedidoExistente.id}` : ''}
         </h4>
 
@@ -385,11 +497,53 @@ export default function CheckoutIsland() {
           <span>Total a pagar</span>
           <strong>{mxn(total)}</strong>
         </div>
+        <div style={{ textAlign: 'right', color: '#64748b', fontSize: '14px' }}>
+          <PrecioUSD mxn={total} />
+        </div>
       </section>
+
+      {!usandoPedido && (
+        <section className="pc-card">
+          <h4 className="pc-card-title">
+            <Truck size="1em" className="icono" />
+            Dirección de envío
+          </h4>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            <input
+              style={campo}
+              inputMode="numeric"
+              placeholder="Código postal (5 dígitos)"
+              value={dir.cp}
+              onChange={(e) => handleCP(e.target.value)}
+            />
+            {errorCP && <small style={{ color: '#dc2626' }}>{errorCP}</small>}
+            {zona && (
+              <>
+                <input style={campo} value={`${zona.municipio}, ${zona.estado}`} readOnly />
+                <select
+                  style={campo}
+                  value={dir.colonia}
+                  onChange={(e) => setDir({ ...dir, colonia: e.target.value })}
+                >
+                  {zona.colonias.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            <input
+              style={campo}
+              placeholder="Calle y número"
+              value={dir.calle}
+              onChange={(e) => setDir({ ...dir, calle: e.target.value })}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="pc-card">
         <h4 className="pc-card-title">
-          <i className="fa-solid fa-credit-card"></i>
+          <CreditCard size="1em" className="icono" />
           Datos de tu tarjeta
         </h4>
 
@@ -400,10 +554,16 @@ export default function CheckoutIsland() {
           </div>
         )}
 
+        {!usandoPedido && !direccionLista && (
+          <p className="pc-muted" style={{ marginTop: 0 }}>
+            Completa tu dirección de envío para poder pagar.
+          </p>
+        )}
+
         {!brickListo && <p className="pc-muted">Cargando formulario de pago...</p>}
         <div id={BRICK_ID}></div>
         <p className="pc-muted" style={{ marginTop: '12px', textAlign: 'center' }}>
-          <i className="fa-solid fa-lock" style={{ marginRight: '6px' }}></i>
+          <Lock size="1em" className="icono" style={{ marginRight: '6px' }} />
           Pago seguro procesado por Mercado Pago
         </p>
       </section>

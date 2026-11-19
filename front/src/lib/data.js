@@ -1,7 +1,7 @@
 import { fetchGraphQL } from '../graphql/cliente';
 
 let cache = { data: null, timestamp: 0 };
-const CACHE_TTL = 60_000; // 60 segundos
+const CACHE_TTL = 5_000; // 5 segundos
 
 export async function getCategorias() {
   const ahora = Date.now();

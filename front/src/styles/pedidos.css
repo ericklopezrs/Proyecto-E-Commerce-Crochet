@@ -41,7 +41,7 @@
   font-weight: 800;
   margin: 0 0 20px;
 }
-.pc-title i { color: var(--pc-morado-oscuro); }
+.pc-title svg { color: var(--pc-morado-oscuro); }
 
 .pc-card {
   background: var(--pc-fondo);
@@ -172,7 +172,7 @@ a.pc-item-name:hover { color: var(--pc-morado-oscuro); }
 .pc-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .pc-empty { text-align: center; padding: 40px 24px; color: var(--pc-gris); }
-.pc-empty i { font-size: 34px; display: block; margin-bottom: 12px; color: var(--pc-morado); }
+.pc-empty svg { font-size: 34px; display: block; margin: 0 auto 12px; color: var(--pc-morado); }
 .pc-empty .pc-actions { margin-top: 18px; }
 
 /* ---------- Mis pedidos ---------- */
