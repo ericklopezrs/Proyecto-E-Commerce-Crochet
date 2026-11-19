@@ -35,6 +35,10 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        screenshots: [
+          { src: '/capturas/tienda_escritorio.png', sizes: '2196x2196', type: 'image/png', form_factor: 'wide', label: 'Catálogo en escritorio' },
+          { src: '/capturas/tienda_celular.png', sizes: '1179x2556', type: 'image/png', label: 'Catálogo en celular' },
+        ],
       },
       workbox: {
         // La tienda es SSR (no hay páginas HTML ya generadas), así que solo

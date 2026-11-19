@@ -1176,14 +1176,96 @@
 .pedido-detalle-subtotal { font-weight: 700; color: #0f172a; white-space: nowrap; }
 .pedido-acciones { display: flex; justify-content: flex-end; padding-top: 4px; }
 
-@media (max-width: 600px) {
-  .pedido-header { flex-wrap: wrap; gap: 8px 12px; }
-  .pedido-header-info { flex-basis: 100%; }
-  .pedido-total { margin-left: auto; }
+/* ====== RESPONSIVE: tablet y celular ====== */
+@media (max-width: 768px) {
+  /* Header: logo y título más chicos, botones compactos */
+  .header-main {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .header-side {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .header-side-left {
+    flex: 1 1 auto;
+  }
+  .brand {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .brand-logo-img {
+    width: 42px;
+    height: 42px;
+  }
+  .brand-title {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header-user {
+    gap: 6px;
+    margin-right: 6px;
+  }
+  .header-user-name {
+    display: none; /* en celular no cabe el nombre */
+  }
+  .header-login-btn {
+    padding: 8px 12px;
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+  .search-toggle,
+  .header-cart-button,
+  .header-logout-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  .search-expand.open .search-input {
+    width: 45vw;
+  }
+
+  /* Categorías: que se puedan deslizar desde la primera */
+  .category-bar {
+    justify-content: flex-start;
+    padding: 8px 14px;
+  }
+  .category-chip {
+    flex-shrink: 0;
+  }
+
+  /* Filtros arriba y catálogo abajo, a todo el ancho */
+  .main-container {
+    flex-direction: column;
+  }
+  .sidebar,
+  .content {
+    box-sizing: border-box; /* que el padding no lo haga más ancho que la pantalla */
+    width: 100%;
+  }
+  .sidebar {
+    padding: 16px 14px;
+  }
+  .content {
+    padding: 16px 14px 32px;
+  }
 }
-/* ====== ÍCONOS (lucide-react) ====== */
-.icono {
-  display: inline-block;
-  vertical-align: -0.125em;
-  flex-shrink: 0;
+
+@media (max-width: 420px) {
+  /* En pantallas muy chicas el botón de login queda solo con el ícono */
+  .brand-title {
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+  .header-login-btn {
+    font-size: 0;
+    padding: 9px;
+  }
+  .header-login-btn .icono {
+    font-size: 16px;
+    margin-right: 0 !important;
+  }
 }
