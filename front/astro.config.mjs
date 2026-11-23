@@ -1,5 +1,4 @@
 // @ts-check
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import vercel from '@astrojs/vercel';
@@ -15,9 +14,7 @@ export default defineConfig({
     react(),
     AstroPWA({
       registerType: 'autoUpdate',
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      filename: 'sw.js',
+      strategies: 'buildSW',
       includeAssets: ['iconocrochet.ico', 'icons/apple-touch-icon.png'],
       manifest: {
         id: '/',
@@ -41,8 +38,9 @@ export default defineConfig({
           { src: '/capturas/tienda_celular.png', sizes: '1179x2556', type: 'image/png', label: 'Catálogo en celular' },
         ],
       },
-      injectManifest: {
-        swSrc: fileURLToPath(new URL('./src/sw.js', import.meta.url)),
+      buildSW: {
+        swSrc: 'src/sw.js',
+        // Precache del shell: CSS, JS, iconos y offline.html (que viene de /public)
         globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2,html}'],
       },
       devOptions: {
