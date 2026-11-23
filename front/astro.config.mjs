@@ -17,6 +17,9 @@ export default defineConfig({
     react(),
     AstroPWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest', // usamos nuestro propio Service Worker (src/sw.js)
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['iconocrochet.ico', 'icons/apple-touch-icon.png'],
       manifest: {
         id: '/',
@@ -40,15 +43,14 @@ export default defineConfig({
           { src: '/capturas/tienda_celular.png', sizes: '1179x2556', type: 'image/png', label: 'Catálogo en celular' },
         ],
       },
-      workbox: {
-        // La tienda es SSR (no hay páginas HTML ya generadas), así que solo
-        // se guardan en caché los archivos estáticos. El offline va en la 3.3.
-        navigateFallback: null,
-        globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2}'],
+      injectManifest: {
+        // Precache del shell: CSS, JS, iconos y offline.html (que viene de /public)
+        globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2,html}'],
       },
-      // Para poder ver el manifiesto también con `npm run dev`
+      // Para poder ver el manifiesto y el SW también con `npm run dev`
       devOptions: {
         enabled: true,
+        type: 'module',
       },
     }),
   ],

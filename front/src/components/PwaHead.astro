@@ -8,7 +8,31 @@ import { pwaInfo } from 'virtual:pwa-info';
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
 <script>
-  // Registra el Service Worker que genera @vite-pwa/astro
   import { registerSW } from 'virtual:pwa-register';
   registerSW({ immediate: true });
+
+  // Aviso de conexión (se vuelve a pintar tras cada navegación de ClientRouter)
+  function actualizarAviso() {
+    let aviso = document.getElementById('aviso-offline');
+    if (navigator.onLine) {
+      aviso?.remove();
+      return;
+    }
+    if (aviso) return;
+    aviso = document.createElement('div');
+    aviso.id = 'aviso-offline';
+    aviso.setAttribute('role', 'status');
+    aviso.textContent = 'Sin conexión — mostrando lo que ya habías visitado.';
+    Object.assign(aviso.style, {
+      position: 'fixed', left: '0', right: '0', bottom: '0', zIndex: '9999',
+      padding: '10px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600',
+      background: '#0f172a', color: '#fff',
+    });
+    document.body.appendChild(aviso);
+  }
+
+  window.addEventListener('online', actualizarAviso);
+  window.addEventListener('offline', actualizarAviso);
+  document.addEventListener('astro:page-load', actualizarAviso);
+  actualizarAviso();
 </script>
