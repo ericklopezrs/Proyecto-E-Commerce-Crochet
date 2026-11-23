@@ -44,6 +44,7 @@ export default defineConfig({
         ],
       },
       injectManifest: {
+        swSrc: 'src/sw.js', // ← nuevo: ruta de tu Service Worker
         // Precache del shell: CSS, JS, iconos y offline.html (que viene de /public)
         globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2,html}'],
       },
