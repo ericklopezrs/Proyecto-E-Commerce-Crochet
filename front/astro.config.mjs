@@ -1,9 +1,7 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
-
-import netlify from '@astrojs/netlify';
-
 import vercel from '@astrojs/vercel';
 import { AstroPWAIntegration as AstroPWA } from '@vite-pwa/astro';
 
@@ -17,7 +15,7 @@ export default defineConfig({
     react(),
     AstroPWA({
       registerType: 'autoUpdate',
-      strategies: 'injectManifest', // usamos nuestro propio Service Worker (src/sw.js)
+      strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
       includeAssets: ['iconocrochet.ico', 'icons/apple-touch-icon.png'],
@@ -44,11 +42,9 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        swSrc: 'src/sw.js', // ← nuevo: ruta de tu Service Worker
-        // Precache del shell: CSS, JS, iconos y offline.html (que viene de /public)
+        swSrc: fileURLToPath(new URL('./src/sw.js', import.meta.url)),
         globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2,html}'],
       },
-      // Para poder ver el manifiesto y el SW también con `npm run dev`
       devOptions: {
         enabled: true,
         type: 'module',
