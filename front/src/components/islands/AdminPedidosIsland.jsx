@@ -188,9 +188,9 @@ export default function AdminPedidosIsland() {
               return (
                 <Fragment key={p.id}>
                   <tr>
-                    <td><strong>#{p.id}</strong></td>
-                    <td>{formatearFecha(p.fecha)}</td>
-                    <td>
+                    <td className="adm-celda-titulo"><strong>#{p.id}</strong></td>
+                    <td data-label="Fecha">{formatearFecha(p.fecha)}</td>
+                    <td data-label="Cliente">
                       {p.usuario ? (
                         <div className="adm-cliente">
                           <span>{p.usuario.nombre}</span>
@@ -200,9 +200,9 @@ export default function AdminPedidosIsland() {
                         '—'
                       )}
                     </td>
-                    <td>{piezas}</td>
-                    <td>{mxn(p.total)}</td>
-                    <td>
+                    <td data-label="Piezas">{piezas}</td>
+                    <td data-label="Total">{mxn(p.total)}</td>
+                    <td data-label="Estado">
                       <span className={`adm-status adm-status-${p.status.toLowerCase()}`}>
                         <estado.icono size="1em" className="icono" /> {estado.texto}
                       </span>

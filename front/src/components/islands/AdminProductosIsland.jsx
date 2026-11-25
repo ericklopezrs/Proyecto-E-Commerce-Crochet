@@ -371,10 +371,10 @@ export default function AdminProductosIsland() {
                     <span>{p.nombre}</span>
                   </div>
                 </td>
-                <td>{p.categoria?.nombre ?? '—'}</td>
-                <td>{mxn(p.precio)}</td>
-                <td className={p.stock <= 3 ? 'adm-stock-bajo' : ''}>{p.stock}</td>
-                <td>
+                <td data-label="Categoría">{p.categoria?.nombre ?? '—'}</td>
+                <td data-label="Precio">{mxn(p.precio)}</td>
+                <td className={p.stock <= 3 ? 'adm-stock-bajo' : ''} data-label="Stock">{p.stock}</td>
+                <td data-label="Estado">
                   <span className={`adm-badge ${p.activo ? 'activo' : 'inactivo'}`}>
                     {p.activo ? 'Activo' : 'Inactivo'}
                   </span>

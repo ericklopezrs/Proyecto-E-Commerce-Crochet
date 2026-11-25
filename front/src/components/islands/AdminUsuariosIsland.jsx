@@ -158,13 +158,13 @@ export default function AdminUsuariosIsland() {
                       {esYo && <span className="adm-tu">tú</span>}
                     </span>
                   </td>
-                  <td>{u.email}</td>
-                  <td>
+                  <td data-label="Correo">{u.email}</td>
+                  <td data-label="Rol">
                     <span className={`adm-badge ${esAdminFila ? 'rol-admin' : 'rol-cliente'}`}>
                       {esAdminFila ? 'Administrador' : 'Cliente'}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Estado">
                     <span className={`adm-badge ${u.activo ? 'activo' : 'inactivo'}`}>
                       {u.activo ? 'Activa' : 'Desactivada'}
                     </span>

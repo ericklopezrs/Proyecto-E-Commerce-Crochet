@@ -1,4 +1,5 @@
-import { RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, RotateCcw, SlidersHorizontal } from 'lucide-react';
 export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
   const ordenes = [
     { value: 'default',    label: 'Destacados' },
@@ -8,12 +9,29 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
     { value: 'nombre-desc',label: 'Nombre: Z → A' }
   ];
 
+  // En celular los filtros vienen cerrados para que el catálogo se vea primero
+  const [abierto, setAbierto] = useState(false);
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${abierto ? 'abierto' : ''}`}>
       <h2 className="sidebar-title">
         <SlidersHorizontal size="1em" className="icono" style={{ marginRight: '8px' }} />
         Filtros
       </h2>
+
+      {/* Solo se ve en celular (responsive.css) */}
+      <button
+        type="button"
+        className="sidebar-toggle"
+        aria-expanded={abierto}
+        onClick={() => setAbierto(!abierto)}
+      >
+        <SlidersHorizontal size="1em" className="icono" />
+        Filtros y orden
+        <ChevronDown size="1em" className="icono sidebar-toggle-flecha" />
+      </button>
+
+      <div className="sidebar-body">
 
       {}
       <div className="filter-group">
@@ -73,6 +91,7 @@ export default function Sidebar({ filters, onFilterChange, onResetFilters }) {
         <RotateCcw size="1em" className="icono" style={{ marginRight: '8px' }} />
         Limpiar filtros
       </button>
+      </div>
     </aside>
   );
 }

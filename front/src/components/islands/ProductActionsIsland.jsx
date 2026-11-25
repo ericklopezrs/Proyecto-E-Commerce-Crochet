@@ -24,7 +24,7 @@ export default function ProductActionsIsland({ producto }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div className="detalle-acciones" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
         <button
           className="primary-btn"
           style={{ flex: 2, padding: '14px 20px', fontSize: '15px' }}

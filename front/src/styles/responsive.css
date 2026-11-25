@@ -1,0 +1,512 @@
+/* =========================================================
+   RESPONSIVE — reglas para tablet y celular de toda la tienda
+   Se importa en Layout.astro y LoginLayout.astro, DESPUÉS de App.css.
+   Puntos de corte:
+     1024px  tablet horizontal
+      768px  tablet / celular grande
+      560px  celular
+      420px  celular chico
+   ========================================================= */
+
+/* El botón de filtros solo existe en celular */
+.sidebar-toggle {
+  display: none;
+}
+
+/* Imágenes y videos nunca más anchos que su contenedor */
+img,
+video {
+  max-width: 100%;
+}
+
+/* Pantallas de login y registro: que se pueda hacer scroll si no cabe */
+body.login-img {
+  overflow-y: auto;
+}
+
+body .login-page {
+  min-height: 100vh;
+  height: auto;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+/* ===================== TABLET (≤ 1024px) ===================== */
+@media (max-width: 1024px) {
+  .header-main {
+    padding: 12px 20px;
+  }
+
+  .brand-logo-img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .brand-title {
+    font-size: 26px;
+  }
+
+  .content {
+    padding: 20px 20px 40px;
+  }
+
+  .sidebar {
+    width: 210px;
+  }
+}
+
+/* ============ TABLET VERTICAL / CELULAR (≤ 768px) ============ */
+@media (max-width: 768px) {
+  /* ---------- Header ---------- */
+  .header-main {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .header-side {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .header-side-left {
+    flex: 1 1 auto;
+  }
+
+  /* Los botones de la derecha nunca se encogen: el que cede espacio es el logo */
+  .header-side-right {
+    flex-shrink: 0;
+  }
+
+  .search-expand {
+    flex-shrink: 0;
+  }
+
+  .search-expand:not(.open) {
+    gap: 0;
+  }
+
+  /* Con el buscador abierto se oculta el nombre para darle espacio */
+  .header-main:has(.search-expand.open) .brand-title {
+    display: none;
+  }
+
+  .brand {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .brand-logo-img {
+    width: 42px;
+    height: 42px;
+  }
+
+  /* El nombre se acomoda en dos renglones en vez de cortarse */
+  .brand-title {
+    font-size: 17px;
+    line-height: 1.05;
+    letter-spacing: 0;
+  }
+
+  .header-user {
+    gap: 6px;
+    margin-right: 6px;
+  }
+
+  .header-user-name {
+    display: none;
+  }
+
+  .header-login-btn {
+    padding: 8px 12px;
+    margin-right: 6px;
+    white-space: nowrap;
+  }
+
+  .search-toggle,
+  .header-cart-button,
+  .header-logout-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .search-expand.open .search-input {
+    width: 45vw;
+  }
+
+  /* ---------- Categorías: se deslizan con el dedo ---------- */
+  .category-bar {
+    justify-content: flex-start;
+    padding: 8px 14px;
+    scrollbar-width: none;
+  }
+
+  .category-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-chip {
+    flex-shrink: 0;
+  }
+
+  /* ---------- Layout: filtros arriba, catálogo abajo ---------- */
+  .main-container {
+    flex-direction: column;
+  }
+
+  .sidebar,
+  .content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .content {
+    padding: 16px 14px 80px; /* abajo: espacio para el botón flotante del carrito */
+  }
+
+  /* Filtros plegables */
+  .sidebar {
+    padding: 12px 14px;
+  }
+
+  .sidebar-title {
+    display: none;
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    background-color: #ffffff;
+    border: 1px solid #d8c4d3;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+  }
+
+  .sidebar-toggle-flecha {
+    margin-left: auto;
+    transition: transform 0.2s;
+  }
+
+  .sidebar.abierto .sidebar-toggle-flecha {
+    transform: rotate(180deg);
+  }
+
+  .sidebar:not(.abierto) .sidebar-body {
+    display: none;
+  }
+
+  .sidebar.abierto .sidebar-body {
+    padding-top: 14px;
+  }
+
+  /* ---------- Banner ---------- */
+  .ml-promo-banner-container {
+    height: 22vh;
+    min-height: 140px;
+    margin-bottom: 16px;
+  }
+
+  /* ---------- Detalle de producto ---------- */
+  .detail-container {
+    flex-direction: column;
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .detail-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-height: 420px;
+  }
+
+  /* Botones "Agregar al carrito" y "Comprar ahora" uno debajo del otro */
+  .detalle-acciones {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .detalle-acciones > button {
+    flex: none !important;
+    width: 100%;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+  }
+
+  /* ---------- Carrito ---------- */
+  .ml-cart-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ml-summary {
+    position: static;
+  }
+
+  /* ---------- Botón flotante del carrito ---------- */
+  .floating-cart-button {
+    width: 52px;
+    height: 52px;
+    right: 16px;
+    bottom: 16px;
+    font-size: 20px;
+  }
+
+  /* Espacio para que el botón flotante no tape el footer */
+  .footer {
+    padding-bottom: 80px;
+  }
+
+  /* ---------- Panel de administración ---------- */
+  body .admin-graficas {
+    grid-template-columns: 1fr;
+  }
+
+  body .admin-grafica-ancha {
+    grid-column: auto;
+  }
+
+  body .adm-buscador {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  body .adm-barra select {
+    flex: 1 1 140px;
+  }
+
+  body .adm-barra .adm-btn-primario {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  /* Tablas del admin → una tarjeta por fila */
+  body .adm-tabla-contenedor {
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla,
+  body .adm-tabla-contenedor .adm-tabla tbody,
+  body .adm-tabla-contenedor .adm-tabla tr,
+  body .adm-tabla-contenedor .adm-tabla td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla thead {
+    display: none;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla tr {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 0;
+    border: none;
+    text-align: right;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Etiqueta de cada dato, sacada del data-label */
+  body .adm-tabla-contenedor .adm-tabla td[data-label]::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #64748b;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  /* Primer dato de la fila = título de la tarjeta */
+  body .adm-tabla-contenedor .adm-tabla td:first-child {
+    justify-content: flex-start;
+    text-align: left;
+    font-weight: 700;
+    font-size: 15px;
+    padding-bottom: 8px;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla .adm-acciones {
+    justify-content: flex-start;
+    padding-top: 10px;
+    white-space: normal;
+  }
+
+  body .adm-tabla-contenedor .adm-acciones-fila {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  body .adm-tabla-contenedor .adm-tu {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  body .adm-tabla-contenedor .adm-cliente {
+    text-align: right;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla .adm-detalle-fila {
+    padding-top: 0;
+  }
+
+  body .adm-tabla-contenedor .adm-tabla .adm-detalle-fila td {
+    display: block;
+    text-align: left;
+  }
+
+  body .adm-modal {
+    padding: 20px 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* ===================== CELULAR (≤ 560px) ===================== */
+@media (max-width: 560px) {
+  /* Catálogo en dos columnas */
+  .grid-productos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .product-image {
+    height: 130px;
+  }
+
+  .product-info {
+    padding: 10px;
+  }
+
+  .product-name {
+    font-size: 14px;
+  }
+
+  .product-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-price {
+    font-size: 16px;
+  }
+
+  .card-actions .primary-btn-sm {
+    padding: 8px 6px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  /* Tarjetas de números del admin, de dos en dos */
+  body .admin-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  body .admin-kpi {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  body .admin-kpi-valor {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  /* Login y registro */
+  body .login-card {
+    padding: 28px 20px;
+  }
+
+  body .adm-modal-acciones {
+    flex-wrap: wrap;
+  }
+
+  body .adm-modal-acciones > * {
+    flex: 1 1 auto;
+  }
+}
+
+/* ================= CELULAR CHICO (≤ 420px) ================= */
+@media (max-width: 420px) {
+  .brand-logo-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-title {
+    font-size: 15px;
+  }
+
+  /* "Iniciar sesión" y los botones del usuario solo con su ícono */
+  .header-login-btn {
+    font-size: 0;
+    padding: 9px;
+    margin-right: 4px;
+  }
+
+  .header-login-btn .icono {
+    font-size: 16px;
+    margin-right: 0 !important;
+  }
+
+  .header-user {
+    gap: 4px;
+    margin-right: 4px;
+  }
+
+  .search-toggle,
+  .header-cart-button,
+  .header-logout-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .content {
+    padding: 14px 12px 80px;
+  }
+
+  .grid-productos {
+    gap: 10px;
+  }
+
+  .product-image {
+    height: 115px;
+  }
+}
+
+/* ============ CELULAR MUY CHICO (≤ 360px) ============ */
+@media (max-width: 360px) {
+  /* No cabe el nombre: se queda solo el logo */
+  .brand-title {
+    display: none;
+  }
+}
