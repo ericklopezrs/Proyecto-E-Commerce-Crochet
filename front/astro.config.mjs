@@ -40,8 +40,7 @@ export default defineConfig({
       },
       buildSW: {
         swSrc: 'src/sw.js',
-        // Precache del shell: CSS, JS, iconos y offline.html (que viene de /public)
-        globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2,html}'],
+        globPatterns: ['**/*.{css,js,svg,png,ico,webp,woff2}'],
       },
       devOptions: {
         enabled: true,

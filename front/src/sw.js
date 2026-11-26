@@ -1,6 +1,6 @@
 /* Service Worker — Peluches Crochet (P11)
  * Ciclo: install (precache) → activate (limpieza + claim) → fetch (estrategias)
- * vite-plugin-pwa (injectManifest) reemplaza self.__WB_MANIFEST con los assets del build.
+ * El build reemplaza self.__WB_MANIFEST con los assets del build.
  */
 const MANIFEST = self.__WB_MANIFEST || [];
 
@@ -17,7 +17,7 @@ const PAGINAS = `paginas-${BUILD}`; // HTML guardado (apunta a los JS/CSS de est
 const DATOS = 'datos-v1'; // respuestas GraphQL del catálogo
 const RECURSOS = 'recursos-v1'; // imágenes y demás assets vistos en runtime
 const ACTUALES = [PRECACHE, PAGINAS, DATOS, RECURSOS];
-const MAX_RECURSOS = 60;
+const MAX_RECURSOS = 200;
 
 const OFFLINE_URL = new URL('offline.html', self.registration.scope).href;
 const PRIVADAS = /^\/(admin|checkout|login|registro|mis-pedidos|api)(\/|$)/;
@@ -28,11 +28,17 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(PRECACHE);
-      const urls = new Set([OFFLINE_URL]);
+
+      // offline.html es obligatorio: si no se puede guardar, la instalación falla a propósito
+      await cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+
+      // Resto del shell (JS, CSS, iconos): si alguno falla, no se cancela la instalación
+      const urls = new Set();
       for (const e of MANIFEST) {
         urls.add(new URL(typeof e === 'string' ? e : e.url, self.registration.scope).href);
       }
-      await cache.addAll([...urls].map((u) => new Request(u, { cache: 'reload' })));
+      urls.delete(OFFLINE_URL);
+      await Promise.allSettled([...urls].map((u) => cache.add(new Request(u, { cache: 'reload' }))));
 
       // El HTML es SSR (no existe como archivo): se guarda el inicio, sin que falle la instalación
       try {
@@ -60,8 +66,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  const data = event.data;
+  if (data?.type === 'SKIP_WAITING') self.skipWaiting();
+  // La página manda las imágenes que muestra (incluidas las lazy) para tenerlas offline
+  if (data?.type === 'CACHEAR_URLS') event.waitUntil(cachearUrls(data.urls || []));
 });
+
+async function cachearUrls(urls) {
+  const cache = await caches.open(RECURSOS);
+  const unicas = [...new Set(urls)].filter((u) => /^https?:/.test(u));
+  await Promise.allSettled(
+    unicas.map(async (u) => {
+      if (await cache.match(u)) return;
+      const mismoOrigen = new URL(u).origin === self.location.origin;
+      const r = await fetch(u, { mode: mismoOrigen ? 'same-origin' : 'no-cors' });
+      if (r.ok || r.type === 'opaque') await cache.put(u, r);
+    })
+  );
+  await recortar(cache, MAX_RECURSOS);
+}
 
 // ───────────────────────── FETCH: enrutador de estrategias ─────────────────────────
 self.addEventListener('fetch', (event) => {

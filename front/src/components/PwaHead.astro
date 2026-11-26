@@ -31,8 +31,30 @@ import { pwaInfo } from 'virtual:pwa-info';
     document.body.appendChild(aviso);
   }
 
+  // Le pasa al SW todas las imágenes de la página (también las lazy) para guardarlas
+  function guardarImagenes() {
+    if (!('serviceWorker' in navigator) || !navigator.onLine) return;
+    setTimeout(async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const urls = new Set();
+        document.querySelectorAll('img').forEach((img) => {
+          if (img.currentSrc) urls.add(img.currentSrc);
+          if (img.src) urls.add(img.src);
+        });
+        reg.active?.postMessage({ type: 'CACHEAR_URLS', urls: [...urls] });
+      } catch {
+        /* sin SW: no pasa nada */
+      }
+    }, 1500); // espera a que las islas de React terminen de pintar
+  }
+
   window.addEventListener('online', actualizarAviso);
   window.addEventListener('offline', actualizarAviso);
-  document.addEventListener('astro:page-load', actualizarAviso);
+  document.addEventListener('astro:page-load', () => {
+    actualizarAviso();
+    guardarImagenes();
+  });
   actualizarAviso();
+  guardarImagenes();
 </script>
